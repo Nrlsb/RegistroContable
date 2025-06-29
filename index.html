@@ -117,7 +117,7 @@
         </div>
     </div>
 
-    <!-- CAMBIO 1: HTML para el nuevo modal de confirmación -->
+    <!-- Modal de confirmación -->
     <div id="confirmModal" class="modal">
         <div class="modal-content">
             <h3 class="text-xl font-semibold mb-4">Confirmar Eliminación</h3>
@@ -131,7 +131,9 @@
 
 
     <script>
-        const API_URL = 'https://registrocontable.netlify.app/api'; // Asegúrate de que esta URL sea la correcta para tu backend desplegado
+        // ***** ¡IMPORTANTE! *****
+        // Reemplaza la siguiente URL con la URL de tu backend desplegado en Render.
+        const API_URL = 'https://gestor-finanzas-backend.onrender.com/api'; 
         const token = localStorage.getItem('authToken');
 
         let transactions = [];
@@ -166,7 +168,7 @@
         const editIsInstallmentCheckbox = document.getElementById('editIsInstallment');
         const editInstallmentDetails = document.getElementById('editInstallmentDetails');
 
-        // CAMBIO 1: DOM Elements (confirm modal)
+        // DOM Elements (confirm modal)
         let transactionToDeleteId = null;
         const confirmModal = document.getElementById('confirmModal');
         const cancelDeleteBtn = document.getElementById('cancelDeleteBtn');
@@ -259,7 +261,6 @@
                 } catch (error) { console.error('Error:', error); }
             });
             
-            // CAMBIO 1: Modificado para usar el nuevo modal
             transactionTableBody.addEventListener('click', (event) => {
                 const editButton = event.target.closest('.edit-button');
                 const deleteButton = event.target.closest('.delete-button');
@@ -302,7 +303,6 @@
 
             editModal.querySelector('.close-button').addEventListener('click', closeEditModal);
             
-            // CAMBIO 1: Event listeners para el modal de confirmación
             cancelDeleteBtn.addEventListener('click', closeConfirmModal);
             confirmDeleteBtn.addEventListener('click', async () => {
                 if (transactionToDeleteId) {
@@ -324,7 +324,6 @@
             });
         }
         
-        // CAMBIO 1: Funciones para manejar el nuevo modal de confirmación
         function openConfirmModal(id) {
             transactionToDeleteId = id;
             confirmModal.style.display = 'block';
@@ -392,7 +391,6 @@
                 let amountDisplay = formatCurrency(t.originalAmount || t.amount);
                 if (t.divisionFactor > 1) amountDisplay += ` <span class="text-xs text-gray-500">(Cuota: ${formatCurrency(t.amount)})</span>`;
 
-                // CAMBIO 2: Se envuelven los botones en un div con flexbox para asegurar la alineación horizontal.
                 row.innerHTML = `
                     <td class="px-4 py-3 capitalize">${t.type}</td>
                     <td class="px-4 py-3">${t.description}</td>
