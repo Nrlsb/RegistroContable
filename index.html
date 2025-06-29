@@ -10,7 +10,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
     <style>
         body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
-        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.4); }
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.4); transition: opacity 0.3s ease; }
         .modal-content { background-color: #fefefe; margin: 10% auto; padding: 20px; border: 1px solid #888; width: 80%; max-width: 500px; border-radius: 0.5rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); }
         .close-button { color: #aaa; float: right; font-size: 28px; font-weight: bold; cursor: pointer; }
         .close-button:hover, .close-button:focus { color: black; text-decoration: none; }
@@ -63,7 +63,7 @@
             </form>
         </section>
 
-        <!-- <-- CAMBIO: HTML completo para el Resumen -->
+        <!-- Resumen Financiero -->
         <section id="summary-section" class="mb-8 p-6 bg-white rounded-xl shadow-lg">
             <h2 class="text-2xl font-semibold mb-4">Resumen Financiero</h2>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
@@ -74,7 +74,7 @@
             <div class="mt-6 text-center"><button id="generatePdfBtn" class="bg-teal-600 hover:bg-teal-700 text-white font-semibold py-2 px-4 rounded-md shadow-sm">Generar Reporte PDF</button></div>
         </section>
 
-        <!-- <-- CAMBIO: HTML completo para el Historial -->
+        <!-- Historial de Transacciones -->
         <section id="transactions-list-section" class="bg-white rounded-xl shadow-lg p-6">
             <h2 class="text-2xl font-semibold mb-4">Historial de Transacciones</h2>
             <div class="overflow-x-auto">
@@ -89,6 +89,7 @@
 
     <div id="loader" class="text-center py-10"><p class="text-lg text-gray-600">Cargando tus finanzas...</p></div>
 
+    <!-- Modal para Editar Transacción -->
     <div id="editModal" class="modal">
         <div class="modal-content">
             <span class="close-button">&times;</span><h3 class="text-xl font-semibold mb-4">Editar Transacción</h3>
@@ -116,9 +117,21 @@
         </div>
     </div>
 
+    <!-- CAMBIO 1: HTML para el nuevo modal de confirmación -->
+    <div id="confirmModal" class="modal">
+        <div class="modal-content">
+            <h3 class="text-xl font-semibold mb-4">Confirmar Eliminación</h3>
+            <p id="confirmMessage" class="mb-6">¿Estás seguro de que deseas eliminar esta transacción? Esta acción no se puede deshacer.</p>
+            <div class="flex justify-end space-x-4">
+                <button id="cancelDeleteBtn" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-semibold py-2 px-4 rounded-md">Cancelar</button>
+                <button id="confirmDeleteBtn" class="bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded-md">Eliminar</button>
+            </div>
+        </div>
+    </div>
+
 
     <script>
-        const API_URL = 'https://gestor-finanzas-backend.onrender.com/api';
+        const API_URL = 'https://registrocontable.netlify.app/api'; // Asegúrate de que esta URL sea la correcta para tu backend desplegado
         const token = localStorage.getItem('authToken');
 
         let transactions = [];
@@ -153,6 +166,11 @@
         const editIsInstallmentCheckbox = document.getElementById('editIsInstallment');
         const editInstallmentDetails = document.getElementById('editInstallmentDetails');
 
+        // CAMBIO 1: DOM Elements (confirm modal)
+        let transactionToDeleteId = null;
+        const confirmModal = document.getElementById('confirmModal');
+        const cancelDeleteBtn = document.getElementById('cancelDeleteBtn');
+        const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
 
         document.addEventListener('DOMContentLoaded', () => {
             if (!token) { window.location.href = './login.html'; return; }
@@ -237,15 +255,16 @@
                     transactions.unshift(savedTransaction);
                     renderAll();
                     transactionForm.reset();
-                    transactionTypeSelect.dispatchEvent(new Event('change')); // Actualiza UI del form
+                    transactionTypeSelect.dispatchEvent(new Event('change'));
                 } catch (error) { console.error('Error:', error); }
             });
             
+            // CAMBIO 1: Modificado para usar el nuevo modal
             transactionTableBody.addEventListener('click', (event) => {
                 const editButton = event.target.closest('.edit-button');
                 const deleteButton = event.target.closest('.delete-button');
                 if (editButton) openEditModal(editButton.dataset.id);
-                if (deleteButton) deleteTransaction(deleteButton.dataset.id);
+                if (deleteButton) openConfirmModal(deleteButton.dataset.id);
             });
 
             editIsInstallmentCheckbox.addEventListener('change', () => {
@@ -259,7 +278,7 @@
                 
                 const updatedData = {
                     description: editDescriptionInput.value,
-                    amount: parseFloat(editAmountInput.value), // Este es el monto total
+                    amount: parseFloat(editAmountInput.value),
                     category: editCategoryInput.value,
                 };
                 
@@ -282,17 +301,38 @@
             });
 
             editModal.querySelector('.close-button').addEventListener('click', closeEditModal);
-            window.addEventListener('click', (event) => { if (event.target == editModal) closeEditModal(); });
+            
+            // CAMBIO 1: Event listeners para el modal de confirmación
+            cancelDeleteBtn.addEventListener('click', closeConfirmModal);
+            confirmDeleteBtn.addEventListener('click', async () => {
+                if (transactionToDeleteId) {
+                    try {
+                        await apiRequest(`/transactions/${transactionToDeleteId}`, 'DELETE');
+                        transactions = transactions.filter(t => t._id !== transactionToDeleteId);
+                        renderAll();
+                    } catch (error) {
+                        console.error('Error al eliminar:', error);
+                    } finally {
+                        closeConfirmModal();
+                    }
+                }
+            });
+
+            window.addEventListener('click', (event) => { 
+                if (event.target == editModal) closeEditModal(); 
+                if (event.target == confirmModal) closeConfirmModal();
+            });
         }
         
-        async function deleteTransaction(id) {
-            if (confirm('¿Estás seguro?')) {
-                 try {
-                    await apiRequest(`/transactions/${id}`, 'DELETE');
-                    transactions = transactions.filter(t => t._id !== id);
-                    renderAll();
-                } catch (error) { console.error('Error al eliminar:', error); }
-            }
+        // CAMBIO 1: Funciones para manejar el nuevo modal de confirmación
+        function openConfirmModal(id) {
+            transactionToDeleteId = id;
+            confirmModal.style.display = 'block';
+        }
+
+        function closeConfirmModal() {
+            transactionToDeleteId = null;
+            confirmModal.style.display = 'none';
         }
 
         function openEditModal(id) {
@@ -352,6 +392,7 @@
                 let amountDisplay = formatCurrency(t.originalAmount || t.amount);
                 if (t.divisionFactor > 1) amountDisplay += ` <span class="text-xs text-gray-500">(Cuota: ${formatCurrency(t.amount)})</span>`;
 
+                // CAMBIO 2: Se envuelven los botones en un div con flexbox para asegurar la alineación horizontal.
                 row.innerHTML = `
                     <td class="px-4 py-3 capitalize">${t.type}</td>
                     <td class="px-4 py-3">${t.description}</td>
@@ -359,9 +400,11 @@
                     <td class="px-4 py-3 font-medium">${amountDisplay}</td>
                     <td class="px-4 py-3 text-center">${installmentText}</td>
                     <td class="px-4 py-3">${new Date(t.date).toLocaleDateString()}</td>
-                    <td class="px-4 py-3 space-x-2">
-                        <button data-id="${t._id}" class="action-button edit-button">Editar</button>
-                        <button data-id="${t._id}" class="action-button delete-button">Eliminar</button>
+                    <td class="px-4 py-3">
+                        <div class="flex items-center space-x-2">
+                            <button data-id="${t._id}" class="action-button edit-button whitespace-nowrap">Editar</button>
+                            <button data-id="${t._id}" class="action-button delete-button whitespace-nowrap">Eliminar</button>
+                        </div>
                     </td>
                 `;
                 transactionTableBody.appendChild(row);
