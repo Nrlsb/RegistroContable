@@ -9,744 +9,376 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
     <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f3f4f6; /* Tailwind gray-100 */
-        }
-        .modal {
-            display: none; /* Hidden by default */
-            position: fixed; /* Stay in place */
-            z-index: 1000; /* Sit on top */
-            left: 0;
-            top: 0;
-            width: 100%; /* Full width */
-            height: 100%; /* Full height */
-            overflow: auto; /* Enable scroll if needed */
-            background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
-        }
-        .modal-content {
-            background-color: #fefefe;
-            margin: 10% auto; /* 10% from the top and centered */
-            padding: 20px;
-            border: 1px solid #888;
-            width: 80%;
-            max-width: 500px;
-            border-radius: 0.5rem; /* Tailwind rounded-lg */
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-        }
-        .close-button {
-            color: #aaa;
-            float: right;
-            font-size: 28px;
-            font-weight: bold;
-        }
-        .close-button:hover,
-        .close-button:focus {
-            color: black;
-            text-decoration: none;
-            cursor: pointer;
-        }
-        .action-button {
-            padding: 0.25rem 0.5rem;
-            font-size: 0.875rem;
-            border-radius: 0.375rem;
-            transition: background-color 0.2s;
-        }
-        .edit-button {
-            background-color: #3b82f6; /* Tailwind blue-500 */
-            color: white;
-        }
-        .edit-button:hover {
-            background-color: #2563eb; /* Tailwind blue-600 */
-        }
-        .delete-button {
-            background-color: #ef4444; /* Tailwind red-500 */
-            color: white;
-        }
-        .delete-button:hover {
-            background-color: #dc2626; /* Tailwind red-600 */
-        }
-        .installment-paid-button {
-            background-color: #10b981; /* Tailwind green-500 */
-            color: white;
-        }
-        .installment-paid-button:hover {
-            background-color: #059669; /* Tailwind green-600 */
-        }
-        .transaction-item {
-            animation: fadeIn 0.5s ease-out;
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(-10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        /* <-- CAMBIO 3: Estilos para el contenedor de notificaciones */
-        #notification-container {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            z-index: 2000;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-        .toast-notification {
-            padding: 12px 20px;
-            border-radius: 0.5rem;
-            color: white;
-            font-size: 0.875rem;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-            animation: slideIn 0.3s ease-out, fadeOut 0.5s ease-in 3.5s forwards;
-        }
-        .toast-notification.success { background-color: #10b981; }
-        .toast-notification.error { background-color: #ef4444; }
-        .toast-notification.info { background-color: #3b82f6; }
-
-        @keyframes slideIn {
-            from { transform: translateX(100%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
-        }
-        @keyframes fadeOut {
-            from { opacity: 1; }
-            to { opacity: 0; transform: translateY(20px); }
-        }
-        /* Fin del cambio 3 */
+        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.4); }
+        .modal-content { background-color: #fefefe; margin: 10% auto; padding: 20px; border: 1px solid #888; width: 80%; max-width: 500px; border-radius: 0.5rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); }
+        .close-button { color: #aaa; float: right; font-size: 28px; font-weight: bold; cursor: pointer; }
+        .close-button:hover, .close-button:focus { color: black; text-decoration: none; }
+        .action-button { padding: 0.25rem 0.5rem; font-size: 0.875rem; border-radius: 0.375rem; transition: background-color 0.2s; color: white; }
+        .edit-button { background-color: #3b82f6; } .edit-button:hover { background-color: #2563eb; }
+        .delete-button { background-color: #ef4444; } .delete-button:hover { background-color: #dc2626; }
+        .installment-paid-button { background-color: #10b981; } .installment-paid-button:hover { background-color: #059669; }
     </style>
 </head>
 <body class="bg-gray-100 text-gray-800 p-4 md:p-8">
-    <div class="container mx-auto max-w-4xl">
-        <header class="mb-8 text-center">
-            <h1 class="text-3xl md:text-4xl font-bold text-indigo-600">Gestor de Finanzas Personales</h1>
+    
+    <div id="main-content" class="container mx-auto max-w-4xl hidden">
+        <header class="mb-8 flex justify-between items-center">
+            <h1 class="text-3xl md:text-4xl font-bold text-indigo-600">Mis Finanzas</h1>
+            <button id="logoutBtn" class="bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded-md shadow-sm">Cerrar Sesión</button>
         </header>
 
+        <!-- Formulario de Transacción -->
         <section id="form-section" class="mb-8 p-6 bg-white rounded-xl shadow-lg">
-            <h2 class="text-2xl font-semibold mb-6 text-gray-700">Agregar Nueva Transacción</h2>
+             <h2 class="text-2xl font-semibold mb-6 text-gray-700">Agregar Nueva Transacción</h2>
             <form id="transactionForm" class="space-y-4">
                 <div>
                     <label for="transactionType" class="block text-sm font-medium text-gray-700">Tipo:</label>
-                    <select id="transactionType" name="transactionType" class="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
-                        <option value="ingreso">Ingreso</option>
-                        <option value="egreso">Egreso</option>
-                    </select>
+                    <select id="transactionType" class="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm"><option value="ingreso">Ingreso</option><option value="egreso">Egreso</option></select>
                 </div>
-
                 <div>
                     <label for="description" class="block text-sm font-medium text-gray-700">Descripción:</label>
-                    <input type="text" id="description" name="description" required class="mt-1 block w-full py-2 px-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="Ej: Salario, Compra supermercado">
+                    <input type="text" id="description" required class="mt-1 block w-full py-2 px-3 border border-gray-300 rounded-md" placeholder="Ej: Salario, Compra supermercado">
                 </div>
-
                 <div>
                     <label for="amount" class="block text-sm font-medium text-gray-700">Monto (Total del Gasto):</label>
-                    <input type="number" id="amount" name="amount" min="0.01" step="0.01" required class="mt-1 block w-full py-2 px-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="0.00">
+                    <input type="number" id="amount" min="0.01" step="0.01" required class="mt-1 block w-full py-2 px-3 border border-gray-300 rounded-md" placeholder="0.00">
                 </div>
-
                 <div>
                     <label for="category" class="block text-sm font-medium text-gray-700">Categoría:</label>
-                    <select id="category" name="category" required class="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
-                        </select>
-                    <input type="text" id="newCategory" class="mt-2 block w-full py-2 px-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="O agregar nueva categoría">
-                    <button type="button" id="addCategoryBtn" class="mt-2 text-sm text-indigo-600 hover:text-indigo-800">Agregar Categoría</button>
+                    <select id="category" required class="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md"></select>
                 </div>
-
                 <div id="expenseDivisionSection" class="hidden space-y-2">
                     <label for="expenseDivisionFactor" class="block text-sm font-medium text-gray-700">División del Gasto:</label>
-                    <select id="expenseDivisionFactor" name="expenseDivisionFactor" class="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
-                        <option value="1">Individual (Monto completo)</option>
-                        <option value="2">Compartido (Dividir por 2)</option>
-                    </select>
+                    <select id="expenseDivisionFactor" class="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md"><option value="1">Individual</option><option value="2">Compartido (x2)</option></select>
                 </div>
-
                 <div id="installmentsSection" class="hidden space-y-4">
-                    <div>
-                        <label for="isInstallment" class="flex items-center">
-                            <input type="checkbox" id="isInstallment" name="isInstallment" class="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">
-                            <span class="ml-2 text-sm text-gray-700">¿Es en cuotas?</span>
-                        </label>
-                    </div>
+                    <label class="flex items-center"><input type="checkbox" id="isInstallment" class="h-4 w-4"><span class="ml-2 text-sm">¿Es en cuotas?</span></label>
                     <div id="installmentDetails" class="hidden space-y-2 pl-6">
-                        <div>
-                            <label for="totalInstallments" class="block text-sm font-medium text-gray-700">Total de Cuotas:</label>
-                            <input type="number" id="totalInstallments" name="totalInstallments" min="1" class="mt-1 block w-full py-2 px-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="Ej: 6">
-                        </div>
-                        <div>
-                            <label for="paidInstallments" class="block text-sm font-medium text-gray-700">Cuotas Abonadas:</label>
-                            <input type="number" id="paidInstallments" name="paidInstallments" min="0" class="mt-1 block w-full py-2 px-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="Ej: 1">
-                        </div>
+                        <div><label for="totalInstallments" class="block text-sm font-medium">Total de Cuotas:</label><input type="number" id="totalInstallments" min="1" class="mt-1 block w-full py-2 px-3 border border-gray-300 rounded-md"></div>
+                        <div><label for="paidInstallments" class="block text-sm font-medium">Cuotas Abonadas:</label><input type="number" id="paidInstallments" min="0" class="mt-1 block w-full py-2 px-3 border border-gray-300 rounded-md"></div>
                     </div>
                 </div>
-
-                <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-150 ease-in-out">
-                    Agregar Transacción
-                </button>
+                <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-md">Agregar Transacción</button>
             </form>
         </section>
 
+        <!-- <-- CAMBIO: HTML completo para el Resumen -->
         <section id="summary-section" class="mb-8 p-6 bg-white rounded-xl shadow-lg">
-            <h2 class="text-2xl font-semibold mb-4 text-gray-700">Resumen Financiero</h2>
+            <h2 class="text-2xl font-semibold mb-4">Resumen Financiero</h2>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
-                <div class="p-4 bg-green-100 rounded-lg">
-                    <h3 class="text-lg font-medium text-green-700">Ingresos Totales</h3>
-                    <p id="totalIncome" class="text-2xl font-bold text-green-600">$0.00</p>
-                </div>
-                <div class="p-4 bg-red-100 rounded-lg">
-                    <h3 class="text-lg font-medium text-red-700">Egresos Totales</h3>
-                    <p id="totalExpenses" class="text-2xl font-bold text-red-600">$0.00</p>
-                </div>
-                <div class="p-4 bg-blue-100 rounded-lg">
-                    <h3 class="text-lg font-medium text-blue-700">Saldo Actual</h3>
-                    <p id="currentBalance" class="text-2xl font-bold text-blue-600">$0.00</p>
-                </div>
+                <div class="p-4 bg-green-100 rounded-lg"><h3 class="text-lg font-medium text-green-700">Ingresos Totales</h3><p id="totalIncome" class="text-2xl font-bold text-green-600">$0.00</p></div>
+                <div class="p-4 bg-red-100 rounded-lg"><h3 class="text-lg font-medium text-red-700">Egresos Totales</h3><p id="totalExpenses" class="text-2xl font-bold text-red-600">$0.00</p></div>
+                <div class="p-4 bg-blue-100 rounded-lg"><h3 class="text-lg font-medium text-blue-700">Saldo Actual</h3><p id="currentBalance" class="text-2xl font-bold text-blue-600">$0.00</p></div>
             </div>
-            <div class="mt-6 text-center space-x-4">
-                 <button id="generatePdfBtn" class="bg-teal-600 hover:bg-teal-700 text-white font-semibold py-2 px-4 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 transition duration-150 ease-in-out">
-                    Generar Reporte PDF
-                </button>
-            </div>
+            <div class="mt-6 text-center"><button id="generatePdfBtn" class="bg-teal-600 hover:bg-teal-700 text-white font-semibold py-2 px-4 rounded-md shadow-sm">Generar Reporte PDF</button></div>
         </section>
 
+        <!-- <-- CAMBIO: HTML completo para el Historial -->
         <section id="transactions-list-section" class="bg-white rounded-xl shadow-lg p-6">
-            <h2 class="text-2xl font-semibold mb-4 text-gray-700">Historial de Transacciones</h2>
+            <h2 class="text-2xl font-semibold mb-4">Historial de Transacciones</h2>
             <div class="overflow-x-auto">
                 <table class="min-w-full divide-y divide-gray-200">
-                    <thead class="bg-gray-50">
-                        <tr>
-                            <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo</th>
-                            <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Descripción</th>
-                            <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Categoría</th>
-                            <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Monto (Efectivo)</th>
-                            <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cuotas</th>
-                            <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha</th>
-                            <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody id="transactionTableBody" class="bg-white divide-y divide-gray-200">
-                        </tbody>
+                    <thead class="bg-gray-50"><tr><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tipo</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Descripción</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Categoría</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Monto</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cuotas</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fecha</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Acciones</th></tr></thead>
+                    <tbody id="transactionTableBody" class="bg-white divide-y divide-gray-200"></tbody>
                 </table>
             </div>
             <p id="noTransactionsMessage" class="mt-4 text-center text-gray-500 hidden">No hay transacciones registradas.</p>
         </section>
     </div>
 
+    <div id="loader" class="text-center py-10"><p class="text-lg text-gray-600">Cargando tus finanzas...</p></div>
+
     <div id="editModal" class="modal">
         <div class="modal-content">
-            <span class="close-button" onclick="closeEditModal()">&times;</span>
-            <h3 class="text-xl font-semibold mb-4">Editar Transacción</h3>
+            <span class="close-button">&times;</span><h3 class="text-xl font-semibold mb-4">Editar Transacción</h3>
             <form id="editForm" class="space-y-3">
                 <input type="hidden" id="editTransactionId">
-                <div>
-                    <label for="editDescription" class="block text-sm font-medium">Descripción:</label>
-                    <input type="text" id="editDescription" required class="mt-1 block w-full py-2 px-3 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                <input type="hidden" id="editTransactionType">
+                <div><label for="editDescription" class="block text-sm font-medium">Descripción:</label><input type="text" id="editDescription" required class="mt-1 block w-full py-2 px-3 border border-gray-300 rounded-md"></div>
+                <div><label for="editAmount" class="block text-sm font-medium">Monto (Total del Gasto):</label><input type="number" id="editAmount" min="0.01" step="0.01" required class="mt-1 block w-full py-2 px-3 border border-gray-300 rounded-md"></div>
+                <div><label for="editCategory" class="block text-sm font-medium">Categoría:</label><select id="editCategory" required class="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md"></select></div>
+                
+                <div id="editExpenseDivisionSection" class="hidden space-y-2">
+                    <label for="editExpenseDivisionFactor" class="block text-sm font-medium">División del Gasto:</label>
+                    <select id="editExpenseDivisionFactor" class="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md"><option value="1">Individual</option><option value="2">Compartido (x2)</option></select>
                 </div>
-                <div>
-                    <label for="editAmount" class="block text-sm font-medium">Monto (Total del Gasto):</label>
-                    <input type="number" id="editAmount" min="0.01" step="0.01" required class="mt-1 block w-full py-2 px-3 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
-                </div>
-                <div>
-                    <label for="editCategory" class="block text-sm font-medium">Categoría:</label>
-                    <select id="editCategory" required class="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
-                        </select>
-                </div>
-
-                <div id="editExpenseDivisionSectionModal" class="hidden space-y-2">
-                    <label for="editExpenseDivisionFactorModal" class="block text-sm font-medium text-gray-700">División del Gasto:</label>
-                    <select id="editExpenseDivisionFactorModal" name="editExpenseDivisionFactorModal" class="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
-                        <option value="1">Individual (Monto completo)</option>
-                        <option value="2">Compartido (Dividir por 2)</option>
-                    </select>
-                </div>
-
-                <div id="editInstallmentsSection" class="hidden space-y-2">
-                     <div>
-                        <label for="editIsInstallment" class="flex items-center">
-                            <input type="checkbox" id="editIsInstallment" class="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">
-                            <span class="ml-2 text-sm text-gray-700">¿Es en cuotas?</span>
-                        </label>
-                    </div>
+                <div id="editInstallmentsSection" class="hidden space-y-4">
+                    <label class="flex items-center"><input type="checkbox" id="editIsInstallment" class="h-4 w-4"><span class="ml-2 text-sm">¿Es en cuotas?</span></label>
                     <div id="editInstallmentDetails" class="hidden space-y-2 pl-6">
-                        <div>
-                            <label for="editTotalInstallments" class="block text-sm font-medium">Total Cuotas:</label>
-                            <input type="number" id="editTotalInstallments" min="1" class="mt-1 block w-full py-2 px-3 border border-gray-300 rounded-md shadow-sm">
-                        </div>
-                        <div>
-                            <label for="editPaidInstallments" class="block text-sm font-medium">Cuotas Abonadas:</label>
-                            <input type="number" id="editPaidInstallments" min="0" class="mt-1 block w-full py-2 px-3 border border-gray-300 rounded-md shadow-sm">
-                        </div>
+                        <div><label for="editTotalInstallments" class="block text-sm font-medium">Total de Cuotas:</label><input type="number" id="editTotalInstallments" min="1" class="mt-1 block w-full py-2 px-3 border border-gray-300 rounded-md"></div>
+                        <div><label for="editPaidInstallments" class="block text-sm font-medium">Cuotas Abonadas:</label><input type="number" id="editPaidInstallments" min="0" class="mt-1 block w-full py-2 px-3 border border-gray-300 rounded-md"></div>
                     </div>
                 </div>
-                <button type="submit" class="w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-md shadow-sm">Guardar Cambios</button>
+
+                <button type="submit" class="w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-md">Guardar Cambios</button>
             </form>
         </div>
     </div>
 
-    <div id="notification-container"></div>
 
     <script>
-        // Asegurarse de que jspdf esté disponible globalmente
-        const { jsPDF } = window.jspdf;
+        const API_URL = 'http://localhost:5000/api';
+        const token = localStorage.getItem('authToken');
 
-        // Referencias a elementos del DOM
+        let transactions = [];
+        let categories = {
+            ingreso: ['Sueldo', 'Ventas', 'Inversiones', 'Regalo', 'Otros Ingresos'],
+            egreso: ['Alquiler/Hipoteca', 'Comida', 'Transporte', 'Servicios', 'Entretenimiento', 'Salud', 'Educación', 'Ropa', 'Impuestos', 'Otros Gastos']
+        };
+
+        // DOM Elements (main)
+        const mainContent = document.getElementById('main-content');
+        const loader = document.getElementById('loader');
+        const logoutBtn = document.getElementById('logoutBtn');
         const transactionForm = document.getElementById('transactionForm');
-        const transactionTypeInput = document.getElementById('transactionType');
-        const descriptionInput = document.getElementById('description');
-        const amountInput = document.getElementById('amount'); 
-        const categoryInput = document.getElementById('category');
-        const newCategoryInput = document.getElementById('newCategory');
-        const addCategoryBtn = document.getElementById('addCategoryBtn');
-        
+        const transactionTableBody = document.getElementById('transactionTableBody');
+        const transactionTypeSelect = document.getElementById('transactionType');
+        const categorySelect = document.getElementById('category');
         const expenseDivisionSection = document.getElementById('expenseDivisionSection');
-        const expenseDivisionFactorSelect = document.getElementById('expenseDivisionFactor');
-
         const installmentsSection = document.getElementById('installmentsSection');
         const isInstallmentCheckbox = document.getElementById('isInstallment');
-        const installmentDetailsDiv = document.getElementById('installmentDetails');
-        const totalInstallmentsInput = document.getElementById('totalInstallments');
-        const paidInstallmentsInput = document.getElementById('paidInstallments');
+        const installmentDetails = document.getElementById('installmentDetails');
         
-        const transactionTableBody = document.getElementById('transactionTableBody');
-        const noTransactionsMessage = document.getElementById('noTransactionsMessage');
-        
-        const totalIncomeEl = document.getElementById('totalIncome');
-        const totalExpensesEl = document.getElementById('totalExpenses');
-        const currentBalanceEl = document.getElementById('currentBalance');
-        const generatePdfBtn = document.getElementById('generatePdfBtn');
-
-        // Modal de edición
+        // DOM Elements (edit modal)
         const editModal = document.getElementById('editModal');
         const editForm = document.getElementById('editForm');
         const editTransactionIdInput = document.getElementById('editTransactionId');
+        const editTransactionTypeInput = document.getElementById('editTransactionType');
         const editDescriptionInput = document.getElementById('editDescription');
-        const editAmountInput = document.getElementById('editAmount'); 
+        const editAmountInput = document.getElementById('editAmount');
         const editCategoryInput = document.getElementById('editCategory');
-        
-        const editExpenseDivisionSectionModal = document.getElementById('editExpenseDivisionSectionModal');
-        const editExpenseDivisionFactorModalSelect = document.getElementById('editExpenseDivisionFactorModal');
-
+        const editExpenseDivisionSection = document.getElementById('editExpenseDivisionSection');
         const editInstallmentsSection = document.getElementById('editInstallmentsSection');
         const editIsInstallmentCheckbox = document.getElementById('editIsInstallment');
-        const editInstallmentDetailsDiv = document.getElementById('editInstallmentDetails');
-        const editTotalInstallmentsInput = document.getElementById('editTotalInstallments');
-        const editPaidInstallmentsInput = document.getElementById('editPaidInstallments');
+        const editInstallmentDetails = document.getElementById('editInstallmentDetails');
 
-        // Estado de la aplicación
-        let transactions = JSON.parse(localStorage.getItem('transactions')) || [];
-        let categories = JSON.parse(localStorage.getItem('categories')) || {
-            ingreso: ['Sueldo', 'Ventas', 'Inversiones', 'Regalo', 'Otros Ingresos'],
-            egreso: ['Alquiler/Hipoteca', 'Comida', 'Transporte', 'Servicios (Luz, Agua, Gas)', 'Entretenimiento', 'Salud', 'Educación', 'Ropa', 'Impuestos', 'Otros Gastos']
-        };
 
-        // --- CAMBIO 3: Lógica para el sistema de notificaciones ---
-        const notificationContainer = document.getElementById('notification-container');
-        function showNotification(message, type = 'info') {
-            const notification = document.createElement('div');
-            notification.className = `toast-notification ${type}`;
-            notification.textContent = message;
-            notificationContainer.appendChild(notification);
-            setTimeout(() => {
-                notification.remove();
-            }, 4000); // La notificación desaparece después de 4 segundos
+        document.addEventListener('DOMContentLoaded', () => {
+            if (!token) { window.location.href = './login.html'; return; }
+            loadInitialData();
+            setupEventListeners();
+        });
+
+        async function apiRequest(endpoint, method = 'GET', body = null) {
+            const options = { method, headers: { 'Authorization': `Bearer ${token}` } };
+            if (body) {
+                options.headers['Content-Type'] = 'application/json';
+                options.body = JSON.stringify(body);
+            }
+            const response = await fetch(`${API_URL}${endpoint}`, options);
+            if (response.status === 401) {
+                localStorage.removeItem('authToken');
+                window.location.href = './login.html';
+                throw new Error('Sesión expirada.');
+            }
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({ msg: 'Error desconocido' }));
+                throw new Error(errorData.msg || `Error en la petición`);
+            }
+            if (response.status === 204) return null;
+            return response.json();
         }
-        // --- Fin del cambio 3 ---
 
-        // --- CAMBIO 1: Función centralizada para guardar el estado ---
-        function saveState() {
+        async function loadInitialData() {
             try {
-                localStorage.setItem('transactions', JSON.stringify(transactions));
-                localStorage.setItem('categories', JSON.stringify(categories));
+                transactions = await apiRequest('/transactions');
+                renderAll();
+                loader.classList.add('hidden');
+                mainContent.classList.remove('hidden');
             } catch (error) {
-                console.error("Error al guardar en localStorage:", error);
-                showNotification("No se pudieron guardar los cambios.", "error");
+                console.error('Error cargando datos:', error);
+                loader.textContent = 'Error al cargar los datos. Intenta recargar la página.';
             }
         }
-        // --- Fin del cambio 1 ---
 
-
-        // --- Funciones auxiliares ---
-        const formatCurrency = (amount) => {
-            return amount.toLocaleString('es-AR', { style: 'currency', currency: 'ARS' });
-        };
-
-        const formatDate = (dateString) => {
-            const date = new Date(dateString);
-            return date.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' });
-        }
-
-        function populateCategoryOptions(selectElement, type) {
-            selectElement.innerHTML = ''; 
-            const catsOfType = categories[type] || []; 
-            catsOfType.forEach(cat => {
-                const option = document.createElement('option');
-                option.value = cat;
-                option.textContent = cat;
-                selectElement.appendChild(option);
+        function setupEventListeners() {
+            logoutBtn.addEventListener('click', () => {
+                localStorage.removeItem('authToken');
+                window.location.href = './login.html';
             });
-        }
-        
-        function updateCategorySelectors() {
-            const currentType = transactionTypeInput.value;
-            populateCategoryOptions(categoryInput, currentType);
-        }
-
-        // --- CAMBIO 4: Función reutilizable para visibilidad de secciones de egreso ---
-        function updateExpenseSectionsVisibility(isEgreso, expenseDivSection, installSection) {
-            expenseDivSection.classList.toggle('hidden', !isEgreso);
-            installSection.classList.toggle('hidden', !isEgreso);
-        }
-
-        // --- CAMBIO 4: Función reutilizable para la UI de las cuotas ---
-        function toggleInstallmentUI(checkbox, detailsDiv, totalInput, paidInput) {
-            const isChecked = checkbox.checked;
-            detailsDiv.classList.toggle('hidden', !isChecked);
-            totalInput.required = isChecked;
-            paidInput.required = isChecked;
-            if (!isChecked) {
-                totalInput.value = '';
-                paidInput.value = '';
-            }
-        }
-        // --- Fin del cambio 4 ---
-
-        // --- Lógica de UI (Mostrar/Ocultar secciones) ---
-        transactionTypeInput.addEventListener('change', () => {
-            updateCategorySelectors();
-            const isEgreso = transactionTypeInput.value === 'egreso';
             
-            updateExpenseSectionsVisibility(isEgreso, expenseDivisionSection, installmentsSection); // <-- CAMBIO 4
+            transactionTypeSelect.addEventListener('change', () => {
+                const isEgreso = transactionTypeSelect.value === 'egreso';
+                populateCategoryOptions(categorySelect, transactionTypeSelect.value);
+                expenseDivisionSection.classList.toggle('hidden', !isEgreso);
+                installmentsSection.classList.toggle('hidden', !isEgreso);
+            });
+            
+            isInstallmentCheckbox.addEventListener('change', () => {
+                installmentDetails.classList.toggle('hidden', !isInstallmentCheckbox.checked);
+            });
 
-            if (!isEgreso) {
-                isInstallmentCheckbox.checked = false;
-                toggleInstallmentUI(isInstallmentCheckbox, installmentDetailsDiv, totalInstallmentsInput, paidInstallmentsInput); // <-- CAMBIO 4
-                expenseDivisionFactorSelect.value = '1'; 
-            }
-        });
+            transactionForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const type = transactionTypeSelect.value;
+                const newTransactionData = {
+                    type,
+                    description: document.getElementById('description').value,
+                    amount: parseFloat(document.getElementById('amount').value),
+                    category: categorySelect.value,
+                };
+                
+                if (type === 'egreso') {
+                    newTransactionData.originalAmount = newTransactionData.amount;
+                    newTransactionData.divisionFactor = parseInt(document.getElementById('expenseDivisionFactor').value) || 1;
+                    newTransactionData.amount = newTransactionData.originalAmount / newTransactionData.divisionFactor;
+                    
+                    const isInstallment = isInstallmentCheckbox.checked;
+                    newTransactionData.isInstallment = isInstallment;
+                    if (isInstallment) {
+                        newTransactionData.totalInstallments = parseInt(document.getElementById('totalInstallments').value);
+                        newTransactionData.paidInstallments = parseInt(document.getElementById('paidInstallments').value);
+                    }
+                }
 
-        isInstallmentCheckbox.addEventListener('change', () => {
-            toggleInstallmentUI(isInstallmentCheckbox, installmentDetailsDiv, totalInstallmentsInput, paidInstallmentsInput); // <-- CAMBIO 4
-        });
+                try {
+                    const savedTransaction = await apiRequest('/transactions', 'POST', newTransactionData);
+                    transactions.unshift(savedTransaction);
+                    renderAll();
+                    transactionForm.reset();
+                    transactionTypeSelect.dispatchEvent(new Event('change')); // Actualiza UI del form
+                } catch (error) { console.error('Error:', error); }
+            });
+            
+            transactionTableBody.addEventListener('click', (event) => {
+                const editButton = event.target.closest('.edit-button');
+                const deleteButton = event.target.closest('.delete-button');
+                if (editButton) openEditModal(editButton.dataset.id);
+                if (deleteButton) deleteTransaction(deleteButton.dataset.id);
+            });
+
+            editIsInstallmentCheckbox.addEventListener('change', () => {
+                editInstallmentDetails.classList.toggle('hidden', !editIsInstallmentCheckbox.checked);
+            });
+
+            editForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const id = editTransactionIdInput.value;
+                const type = editTransactionTypeInput.value;
+                
+                const updatedData = {
+                    description: editDescriptionInput.value,
+                    amount: parseFloat(editAmountInput.value), // Este es el monto total
+                    category: editCategoryInput.value,
+                };
+                
+                if (type === 'egreso') {
+                    updatedData.divisionFactor = parseInt(document.getElementById('editExpenseDivisionFactor').value);
+                    updatedData.isInstallment = editIsInstallmentCheckbox.checked;
+                    if (updatedData.isInstallment) {
+                        updatedData.totalInstallments = parseInt(document.getElementById('editTotalInstallments').value);
+                        updatedData.paidInstallments = parseInt(document.getElementById('editPaidInstallments').value);
+                    }
+                }
+
+                try {
+                    const updatedTransaction = await apiRequest(`/transactions/${id}`, 'PUT', updatedData);
+                    const index = transactions.findIndex(t => t._id === id);
+                    if (index !== -1) transactions[index] = updatedTransaction;
+                    renderAll();
+                    closeEditModal();
+                } catch (error) { console.error('Error al actualizar:', error); }
+            });
+
+            editModal.querySelector('.close-button').addEventListener('click', closeEditModal);
+            window.addEventListener('click', (event) => { if (event.target == editModal) closeEditModal(); });
+        }
         
-        editIsInstallmentCheckbox.addEventListener('change', () => {
-            toggleInstallmentUI(editIsInstallmentCheckbox, editInstallmentDetailsDiv, editTotalInstallmentsInput, editPaidInstallmentsInput); // <-- CAMBIO 4
-        });
-
-        // --- Lógica de Datos (CRUD + Guardado) ---
-        addCategoryBtn.addEventListener('click', () => {
-            const newCat = newCategoryInput.value.trim();
-            const type = transactionTypeInput.value;
-            if (!categories[type]) categories[type] = []; 
-
-            if (newCat && !categories[type].includes(newCat)) {
-                categories[type].push(newCat);
-                categories[type].sort();
-                updateCategorySelectors();
-                categoryInput.value = newCat; 
-                newCategoryInput.value = '';
-                saveState(); // <-- CAMBIO 1
-                showNotification('Categoría agregada con éxito.', 'success'); // <-- CAMBIO 3
-            } else if (categories[type].includes(newCat)) {
-                showNotification('Esa categoría ya existe.', 'error'); // <-- CAMBIO 3
-            } else {
-                showNotification('Por favor, ingresa un nombre para la nueva categoría.', 'error'); // <-- CAMBIO 3
+        async function deleteTransaction(id) {
+            if (confirm('¿Estás seguro?')) {
+                 try {
+                    await apiRequest(`/transactions/${id}`, 'DELETE');
+                    transactions = transactions.filter(t => t._id !== id);
+                    renderAll();
+                } catch (error) { console.error('Error al eliminar:', error); }
             }
-        });
+        }
+
+        function openEditModal(id) {
+            const transaction = transactions.find(t => t._id === id);
+            if (!transaction) return;
+
+            editTransactionIdInput.value = transaction._id;
+            editTransactionTypeInput.value = transaction.type;
+            editDescriptionInput.value = transaction.description;
+            editAmountInput.value = transaction.originalAmount || transaction.amount;
+            
+            populateCategoryOptions(editCategoryInput, transaction.type);
+            editCategoryInput.value = transaction.category;
+
+            const isEgreso = transaction.type === 'egreso';
+            editExpenseDivisionSection.classList.toggle('hidden', !isEgreso);
+            editInstallmentsSection.classList.toggle('hidden', !isEgreso);
+            
+            if (isEgreso) {
+                document.getElementById('editExpenseDivisionFactor').value = transaction.divisionFactor || 1;
+                editIsInstallmentCheckbox.checked = transaction.isInstallment || false;
+                editInstallmentDetails.classList.toggle('hidden', !transaction.isInstallment);
+                if (transaction.isInstallment) {
+                    document.getElementById('editTotalInstallments').value = transaction.totalInstallments;
+                    document.getElementById('editPaidInstallments').value = transaction.paidInstallments;
+                }
+            }
+
+            editModal.style.display = 'block';
+        }
+
+        function closeEditModal() { editModal.style.display = 'none'; }
+
+        function renderAll() {
+            renderTransactions();
+            updateSummary();
+            populateCategoryOptions(categorySelect, transactionTypeSelect.value);
+        }
+
+        function updateSummary() {
+            const ingresos = transactions.filter(t => t.type === 'ingreso').reduce((sum, t) => sum + t.amount, 0);
+            const egresos = transactions.filter(t => t.type === 'egreso').reduce((sum, t) => sum + (t.originalAmount || t.amount), 0);
+            const balance = ingresos - egresos;
+            document.getElementById('totalIncome').textContent = formatCurrency(ingresos);
+            document.getElementById('totalExpenses').textContent = formatCurrency(egresos);
+            document.getElementById('currentBalance').textContent = formatCurrency(balance);
+        }
 
         function renderTransactions() {
-            transactionTableBody.innerHTML = ''; 
-            noTransactionsMessage.classList.toggle('hidden', transactions.length > 0);
-            transactions.sort((a, b) => new Date(b.date) - new Date(a.date)); 
-
+            transactionTableBody.innerHTML = '';
+            document.getElementById('noTransactionsMessage').classList.toggle('hidden', transactions.length > 0);
             transactions.forEach(t => {
                 const row = document.createElement('tr');
-                row.classList.add('transaction-item');
-                row.classList.toggle('bg-green-50', t.type === 'ingreso');
-                row.classList.toggle('bg-red-50', t.type === 'egreso');
-
+                row.className = t.type === 'ingreso' ? 'bg-green-50' : 'bg-red-50';
                 let installmentText = '-';
-                if (t.type === 'egreso' && t.isInstallment) {
-                    installmentText = `${t.paidInstallments} de ${t.totalInstallments}`;
-                }
-                
-                let amountDisplay = formatCurrency(t.amount);
-                if (t.type === 'egreso' && t.divisionFactor && t.divisionFactor > 1) {
-                    amountDisplay += ` <span class="text-xs text-gray-500">(${100/t.divisionFactor}%)</span>`;
-                }
+                if (t.isInstallment) installmentText = `${t.paidInstallments} de ${t.totalInstallments}`;
+                let amountDisplay = formatCurrency(t.originalAmount || t.amount);
+                if (t.divisionFactor > 1) amountDisplay += ` <span class="text-xs text-gray-500">(Cuota: ${formatCurrency(t.amount)})</span>`;
 
-                // <-- CAMBIO 2: Se eliminan los 'onclick' y se añaden 'data-action' y 'data-id'
                 row.innerHTML = `
-                    <td class="px-4 py-3 whitespace-nowrap text-sm ${t.type === 'ingreso' ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'}">${t.type.charAt(0).toUpperCase() + t.type.slice(1)}</td>
-                    <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">${t.description}</td>
-                    <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">${t.category}</td>
-                    <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">${amountDisplay}</td>
-                    <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">${installmentText}</td>
-                    <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">${formatDate(t.date)}</td>
-                    <td class="px-4 py-3 whitespace-nowrap text-sm font-medium space-x-2">
-                        ${t.type === 'egreso' && t.isInstallment && t.paidInstallments < t.totalInstallments ? `<button data-id="${t.id}" data-action="pay-installment" class="action-button installment-paid-button" title="Marcar cuota como pagada">+</button>` : ''}
-                        <button data-id="${t.id}" data-action="edit" class="action-button edit-button">Editar</button>
-                        <button data-id="${t.id}" data-action="delete" class="action-button delete-button">Eliminar</button>
+                    <td class="px-4 py-3 capitalize">${t.type}</td>
+                    <td class="px-4 py-3">${t.description}</td>
+                    <td class="px-4 py-3">${t.category}</td>
+                    <td class="px-4 py-3 font-medium">${amountDisplay}</td>
+                    <td class="px-4 py-3 text-center">${installmentText}</td>
+                    <td class="px-4 py-3">${new Date(t.date).toLocaleDateString()}</td>
+                    <td class="px-4 py-3 space-x-2">
+                        <button data-id="${t._id}" class="action-button edit-button">Editar</button>
+                        <button data-id="${t._id}" class="action-button delete-button">Eliminar</button>
                     </td>
                 `;
                 transactionTableBody.appendChild(row);
             });
-            updateSummary();
-        }
-
-        function updateSummary() {
-            const income = transactions.filter(t => t.type === 'ingreso').reduce((sum, t) => sum + t.amount, 0);
-            const expenses = transactions.filter(t => t.type === 'egreso').reduce((sum, t) => sum + t.amount, 0);
-            const balance = income - expenses;
-
-            totalIncomeEl.textContent = formatCurrency(income);
-            totalExpensesEl.textContent = formatCurrency(expenses);
-            currentBalanceEl.textContent = formatCurrency(balance);
-
-            currentBalanceEl.classList.remove('text-green-600', 'text-red-600', 'text-blue-600');
-            if (balance > 0) currentBalanceEl.classList.add('text-green-600');
-            else if (balance < 0) currentBalanceEl.classList.add('text-red-600');
-            else currentBalanceEl.classList.add('text-blue-600'); 
-        }
-
-        transactionForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-
-            const type = transactionTypeInput.value;
-            const description = descriptionInput.value;
-            const enteredAmount = parseFloat(amountInput.value); 
-            const category = categoryInput.value;
-            const date = new Date().toISOString();
-
-            if (!category) { showNotification('Por favor, selecciona o agrega una categoría.', 'error'); return; }
-            if (isNaN(enteredAmount) || enteredAmount <=0) { showNotification('Por favor, ingresa un monto válido.', 'error'); return; }
-
-            let finalAmount = enteredAmount;
-            let divisionFactor = 1;
-
-            if (type === 'egreso') {
-                divisionFactor = parseInt(expenseDivisionFactorSelect.value) || 1;
-                finalAmount = enteredAmount / divisionFactor;
-            }
-
-            const newTransaction = {
-                id: 'tx_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9), 
-                type, description, amount: finalAmount, originalAmount: enteredAmount, 
-                divisionFactor: divisionFactor, category, date, isInstallment: false
-            };
-
-            if (type === 'egreso' && isInstallmentCheckbox.checked) {
-                const totalInstallments = parseInt(totalInstallmentsInput.value);
-                const paidInstallments = parseInt(paidInstallmentsInput.value);
-
-                if (isNaN(totalInstallments) || totalInstallments <= 0) { showNotification('El total de cuotas debe ser un número positivo.', 'error'); return; }
-                if (isNaN(paidInstallments) || paidInstallments < 0 || paidInstallments > totalInstallments) { showNotification('Las cuotas abonadas no son válidas.', 'error'); return; }
-                newTransaction.isInstallment = true;
-                newTransaction.totalInstallments = totalInstallments;
-                newTransaction.paidInstallments = paidInstallments;
-            }
-            
-            transactions.push(newTransaction);
-            renderTransactions();
-            saveState(); // <-- CAMBIO 1
-            showNotification('Transacción agregada.', 'success'); // <-- CAMBIO 3
-            transactionForm.reset();
-            
-            updateExpenseSectionsVisibility(false, expenseDivisionSection, installmentsSection); // <-- CAMBIO 4
-            isInstallmentCheckbox.checked = false;
-            toggleInstallmentUI(isInstallmentCheckbox, installmentDetailsDiv, totalInstallmentsInput, paidInstallmentsInput); // <-- CAMBIO 4
-            expenseDivisionFactorSelect.value = '1';
-            transactionTypeInput.value = 'ingreso'; 
-            updateCategorySelectors(); 
-        });
-
-        function markInstallmentPaid(id) {
-            const transactionIndex = transactions.findIndex(t => t.id === id);
-            if (transactionIndex > -1) {
-                const transaction = transactions[transactionIndex];
-                if (transaction.isInstallment && transaction.paidInstallments < transaction.totalInstallments) {
-                    transaction.paidInstallments += 1;
-                    renderTransactions();
-                    saveState(); // <-- CAMBIO 1
-                }
-            }
-        }
-
-        function deleteTransaction(id) {
-            transactions = transactions.filter(t => t.id !== id);
-            renderTransactions();
-            saveState(); // <-- CAMBIO 1
-            showNotification('Transacción eliminada.', 'info'); // <-- CAMBIO 3
         }
         
-        // <-- CAMBIO 2: Listener centralizado para acciones de la tabla
-        transactionTableBody.addEventListener('click', (event) => {
-            const button = event.target.closest('button[data-action]');
-            if (!button) return;
-
-            const { action, id } = button.dataset;
-
-            switch (action) {
-                case 'delete':
-                    if (confirm('¿Estás seguro de que quieres eliminar esta transacción?')) {
-                         deleteTransaction(id);
-                    }
-                    break;
-                case 'edit':
-                    openEditModal(id);
-                    break;
-                case 'pay-installment':
-                    markInstallmentPaid(id);
-                    break;
-            }
-        });
-
-
-        function openEditModal(id) {
-            const transaction = transactions.find(t => t.id === id);
-            if (!transaction) return;
-
-            editTransactionIdInput.value = transaction.id;
-            editDescriptionInput.value = transaction.description;
-            editAmountInput.value = transaction.originalAmount !== undefined ? transaction.originalAmount : transaction.amount;
-            
-            populateCategoryOptions(editCategoryInput, transaction.type); 
-            editCategoryInput.value = transaction.category;
-
-            const isEgreso = transaction.type === 'egreso';
-            updateExpenseSectionsVisibility(isEgreso, editExpenseDivisionSectionModal, editInstallmentsSection); // <-- CAMBIO 4
-
-            if (isEgreso) {
-                editExpenseDivisionFactorModalSelect.value = transaction.divisionFactor || '1';
-                editIsInstallmentCheckbox.checked = transaction.isInstallment || false;
-                toggleInstallmentUI(editIsInstallmentCheckbox, editInstallmentDetailsDiv, editTotalInstallmentsInput, editPaidInstallmentsInput); // <-- CAMBIO 4
-                if (transaction.isInstallment) {
-                    editTotalInstallmentsInput.value = transaction.totalInstallments;
-                    editPaidInstallmentsInput.value = transaction.paidInstallments;
-                }
-            } else {
-                 editIsInstallmentCheckbox.checked = false;
-                 toggleInstallmentUI(editIsInstallmentCheckbox, editInstallmentDetailsDiv, editTotalInstallmentsInput, editPaidInstallmentsInput); // <-- CAMBIO 4
-            }
-            
-            editModal.style.display = 'block';
-        }
-
-        function closeEditModal() {
-            editModal.style.display = 'none';
-            editForm.reset(); 
-        }
-
-        editForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            const id = editTransactionIdInput.value;
-            const transactionIndex = transactions.findIndex(t => t.id === id);
-
-            if (transactionIndex > -1) {
-                const originalTransactionType = transactions[transactionIndex].type; 
-                
-                const enteredAmount = parseFloat(editAmountInput.value); 
-                if (isNaN(enteredAmount) || enteredAmount <=0) { showNotification('Por favor, ingresa un monto válido.', 'error'); return; }
-                if (!editCategoryInput.value) { showNotification('Por favor, selecciona una categoría.', 'error'); return; }
-
-                transactions[transactionIndex].description = editDescriptionInput.value;
-                transactions[transactionIndex].category = editCategoryInput.value;
-                transactions[transactionIndex].originalAmount = enteredAmount;
-
-                if (originalTransactionType === 'egreso') {
-                    transactions[transactionIndex].divisionFactor = parseInt(editExpenseDivisionFactorModalSelect.value) || 1;
-                    transactions[transactionIndex].amount = enteredAmount / transactions[transactionIndex].divisionFactor;
-
-                    transactions[transactionIndex].isInstallment = editIsInstallmentCheckbox.checked;
-                    if (editIsInstallmentCheckbox.checked) {
-                        const total = parseInt(editTotalInstallmentsInput.value);
-                        const paid = parseInt(editPaidInstallmentsInput.value);
-
-                        if (isNaN(total) || total <= 0) { showNotification('El total de cuotas debe ser un número positivo.', 'error'); return; }
-                        if (isNaN(paid) || paid < 0 || paid > total) { showNotification('Las cuotas abonadas no son válidas.', 'error'); return; }
-                        transactions[transactionIndex].totalInstallments = total;
-                        transactions[transactionIndex].paidInstallments = paid;
-                    } else {
-                        delete transactions[transactionIndex].totalInstallments;
-                        delete transactions[transactionIndex].paidInstallments;
-                    }
-                } else { 
-                    transactions[transactionIndex].amount = enteredAmount;
-                    transactions[transactionIndex].divisionFactor = 1; 
-                }
-                renderTransactions(); 
-                saveState(); // <-- CAMBIO 1
-                closeEditModal();
-                showNotification('Transacción actualizada.', 'success'); // <-- CAMBIO 3
-            }
-        });
-        
-        // --- Generación de PDF (sin cambios) ---
-        function generatePDF() {
-            if (transactions.length === 0) {
-                showNotification("No hay transacciones para generar el reporte.", "info");
-                return;
-            }
-
-            const doc = new jsPDF();
-            const pageHeight = doc.internal.pageSize.height || doc.internal.pageSize.getHeight();
-            const pageWidth = doc.internal.pageSize.width || doc.internal.pageSize.getWidth();
-            let startY = 20;
-
-            doc.setFontSize(18);
-            doc.text("Reporte Financiero", pageWidth / 2, startY, { align: 'center' });
-            startY += 10;
-
-            doc.setFontSize(12);
-            doc.text(`Ingresos Totales: ${totalIncomeEl.textContent}`, 14, startY);
-            startY += 7;
-            doc.text(`Egresos Totales: ${totalExpensesEl.textContent}`, 14, startY);
-            startY += 7;
-            doc.text(`Saldo Actual: ${currentBalanceEl.textContent}`, 14, startY);
-            startY += 15;
-
-            const tableColumn = ["Tipo", "Descripción", "Categoría", "Monto (Efectivo)", "Cuotas", "Fecha"];
-            const tableRows = [];
-
-            transactions.forEach(t => {
-                let installmentTextPDF = '-';
-                if (t.type === 'egreso' && t.isInstallment) {
-                    installmentTextPDF = `${t.paidInstallments} de ${t.totalInstallments}`;
-                }
-                let amountTextPDF = formatCurrency(t.amount);
-                 if (t.type === 'egreso' && t.divisionFactor && t.divisionFactor > 1) {
-                    amountTextPDF += ` (${100/t.divisionFactor}%)`;
-                }
-                const transactionData = [
-                    t.type.charAt(0).toUpperCase() + t.type.slice(1), t.description, t.category,
-                    amountTextPDF, installmentTextPDF, formatDate(t.date)
-                ];
-                tableRows.push(transactionData);
+        function populateCategoryOptions(selectElement, type) {
+            selectElement.innerHTML = ''; 
+            categories[type].forEach(cat => {
+                const option = document.createElement('option');
+                option.value = cat; option.textContent = cat;
+                selectElement.appendChild(option);
             });
-
-            doc.autoTable({
-                head: [tableColumn], body: tableRows, startY: startY,
-                theme: 'grid', headStyles: { fillColor: [22, 160, 133] },
-                styles: { fontSize: 8 },
-                columnStyles: { 3: { halign: 'right' }, 4: { halign: 'center' }, 5: { halign: 'center' } }
-            });
-
-            doc.save('reporte_financiero.pdf');
         }
 
-        generatePdfBtn.addEventListener('click', generatePDF);
+        const formatCurrency = (amount) => (amount || 0).toLocaleString('es-AR', { style: 'currency', currency: 'ARS' });
 
-        // --- Inicialización ---
-        window.onclick = function(event) {
-            if (event.target == editModal) {
-                closeEditModal();
-            }
-        }
-
-        document.addEventListener('DOMContentLoaded', () => {
-            const initialType = transactionTypeInput.value;
-            populateCategoryOptions(categoryInput, initialType);
-            
-            const isEgreso = initialType === 'egreso';
-            updateExpenseSectionsVisibility(isEgreso, expenseDivisionSection, installmentsSection); // <-- CAMBIO 4
-            
-            renderTransactions(); 
-        });
     </script>
 </body>
 </html>
