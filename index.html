@@ -40,7 +40,6 @@
                     <section id="form-section" class="p-6 bg-white rounded-xl shadow-lg">
                         <h2 class="text-2xl font-semibold mb-6 text-gray-700">Agregar Transacción</h2>
                         <form id="transactionForm" class="space-y-4">
-                            <!-- Contenido del formulario sin cambios... -->
                              <div><label for="transactionType" class="block text-sm font-medium text-gray-700">Tipo:</label><select id="transactionType" class="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm"><option value="ingreso">Ingreso</option><option value="egreso">Egreso</option></select></div>
                              <div><label for="description" class="block text-sm font-medium text-gray-700">Descripción:</label><input type="text" id="description" required class="mt-1 block w-full py-2 px-3 border border-gray-300 rounded-md" placeholder="Ej: Salario, Supermercado"></div>
                              <div><label for="amount" class="block text-sm font-medium text-gray-700">Monto (Total):</label><input type="number" id="amount" min="0.01" step="0.01" required class="mt-1 block w-full py-2 px-3 border border-gray-300 rounded-md" placeholder="0.00"></div>
@@ -63,7 +62,6 @@
                     </section>
                 </div>
                 
-                <!-- NUEVA SECCIÓN DE ANÁLISIS Y IA -->
                 <section id="analysis-ai-section" class="p-6 bg-white rounded-xl shadow-lg">
                     <h2 class="text-2xl font-semibold mb-4">Análisis y Asistente IA</h2>
                     <div class="flex flex-wrap gap-4 mb-6 items-end">
@@ -85,7 +83,6 @@
                 </section>
             </div>
 
-            <!-- Columna Derecha: Historial -->
             <div class="lg:col-span-1">
                 <section id="transactions-list-section" class="bg-white rounded-xl shadow-lg p-6">
                     <h2 class="text-2xl font-semibold mb-4">Historial de Transacciones</h2>
@@ -103,18 +100,19 @@
 
     <div id="loader" class="text-center py-10"><p class="text-lg text-gray-600">Cargando tus finanzas...</p></div>
 
-    <!-- Modales (sin cambios) -->
-    <div id="editModal" class="modal">...</div>
-    <div id="confirmModal" class="modal">...</div>
+    <!-- Modales -->
+    <div id="editModal" class="modal"><div class="modal-content"><span class="close-button" id="closeEditModal">&times;</span><h3 class="text-xl font-semibold mb-4">Editar Transacción</h3><form id="editForm" class="space-y-3"><input type="hidden" id="editTransactionId"><input type="hidden" id="editTransactionType"><div><label for="editDescription" class="block text-sm font-medium">Descripción:</label><input type="text" id="editDescription" required class="mt-1 block w-full py-2 px-3 border-gray-300 rounded-md"></div><div><label for="editAmount" class="block text-sm font-medium">Monto (Total):</label><input type="number" id="editAmount" min="0.01" step="0.01" required class="mt-1 block w-full py-2 px-3 border-gray-300 rounded-md"></div><div><label for="editCategory" class="block text-sm font-medium">Categoría:</label><select id="editCategory" required class="mt-1 block w-full py-2 px-3 border-gray-300 rounded-md"></select></div><div id="editExpenseDivisionSection" class="hidden"><label for="editExpenseDivisionFactor">División:</label><select id="editExpenseDivisionFactor" class="mt-1 w-full border-gray-300 rounded-md"><option value="1">Individual</option><option value="2">x2</option></select></div><div id="editInstallmentsSection" class="hidden"><label class="flex items-center"><input type="checkbox" id="editIsInstallment"><span class="ml-2">En cuotas</span></label><div id="editInstallmentDetails" class="hidden pl-6"><div><label for="editTotalInstallments">Total:</label><input type="number" id="editTotalInstallments" class="mt-1 w-full border-gray-300 rounded-md"></div><div><label for="editPaidInstallments">Pagadas:</label><input type="number" id="editPaidInstallments" class="mt-1 w-full border-gray-300 rounded-md"></div></div></div><button type="submit" class="w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-md">Guardar</button></form></div></div>
+    <div id="confirmModal" class="modal"><div class="modal-content"><h3 class="text-xl font-semibold mb-4">Confirmar</h3><p id="confirmMessage" class="mb-6">¿Seguro?</p><div class="flex justify-end space-x-4"><button id="cancelDeleteBtn" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-semibold py-2 px-4 rounded-md">Cancelar</button><button id="confirmDeleteBtn" class="bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded-md">Eliminar</button></div></div></div>
 
     <script>
         // CONFIG
-        const API_URL = 'https://gestor-finanzas-backend.onrender.com/api'; // <-- CONFIRMA QUE ESTA ES TU URL
+        const API_URL = 'https://gestor-finanzas-backend.onrender.com/api'; 
         const token = localStorage.getItem('authToken');
 
         // STATE
         let allTransactions = [];
         let expensesChart = null;
+        let transactionToDeleteId = null;
         let categories = {
             ingreso: ['Sueldo', 'Ventas', 'Inversiones', 'Regalo', 'Otros Ingresos'],
             egreso: ['Alquiler/Hipoteca', 'Comida', 'Transporte', 'Servicios', 'Entretenimiento', 'Salud', 'Educación', 'Ropa', 'Impuestos', 'Otros Gastos']
@@ -127,17 +125,29 @@
         const logoutBtn = document.getElementById('logoutBtn');
         const transactionForm = document.getElementById('transactionForm');
         const transactionTableBody = document.getElementById('transactionTableBody');
-        // ... (resto de tus selectores de formulario y modales)
         const filterButton = document.getElementById('filter-button');
         const analyzeButton = document.getElementById('analyze-button');
         const aiResponseContainer = document.getElementById('ai-response-container');
         const startDateInput = document.getElementById('startDate');
         const endDateInput = document.getElementById('endDate');
+        const transactionTypeSelect = document.getElementById('transactionType');
+        const categorySelect = document.getElementById('category');
+        const expenseDivisionSection = document.getElementById('expenseDivisionSection');
+        const installmentsSection = document.getElementById('installmentsSection');
+        const isInstallmentCheckbox = document.getElementById('isInstallment');
+        const installmentDetails = document.getElementById('installmentDetails');
+        const editModal = document.getElementById('editModal');
+        const editForm = document.getElementById('editForm');
+        const confirmModal = document.getElementById('confirmModal');
+        const cancelDeleteBtn = document.getElementById('cancelDeleteBtn');
+        const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+        const generatePdfBtn = document.getElementById('generatePdfBtn');
 
         // --- INICIALIZACIÓN ---
         document.addEventListener('DOMContentLoaded', () => {
             if (!token) { window.location.href = './login.html'; return; }
             document.getElementById('date').valueAsDate = new Date();
+            populateCategoryOptions(categorySelect, 'ingreso');
             loadInitialData();
             setupEventListeners();
         });
@@ -168,7 +178,7 @@
             try {
                 allTransactions = await apiRequest('/transactions');
                 renderTransactionsList(allTransactions);
-                await updateDashboard(); // Carga inicial sin filtros
+                await updateDashboard(); 
                 
                 loader.classList.add('hidden');
                 mainContent.classList.remove('hidden');
@@ -239,7 +249,7 @@
             transactionsToRender.forEach(t => {
                 const row = document.createElement('tr');
                 const typeClass = t.type === 'ingreso' ? 'text-green-600' : 'text-red-600';
-                const amountDisplay = t.originalAmount ? t.originalAmount : t.amount;
+                const amountDisplay = t.originalAmount != null ? t.originalAmount : t.amount;
 
                 row.innerHTML = `
                     <td class="px-2 py-3">
@@ -263,9 +273,8 @@
             const labels = Object.keys(expensesByCategory);
             const data = Object.values(expensesByCategory);
 
-            if (expensesChart) {
-                expensesChart.destroy();
-            }
+            if (expensesChart) expensesChart.destroy();
+            
             expensesChart = new Chart(ctx, {
                 type: 'doughnut',
                 data: {
@@ -281,43 +290,151 @@
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    plugins: {
-                        legend: { display: false }
-                    }
+                    plugins: { legend: { display: false } }
                 }
             });
         }
-
-        // --- MANEJADORES DE EVENTOS Y LÓGICA ANTIGUA (ADAPTADA) ---
+        
+        // --- MANEJADORES DE EVENTOS ---
         function setupEventListeners() {
-            logoutBtn.addEventListener('click', () => { /* ... sin cambios ... */ });
+            logoutBtn.addEventListener('click', () => {
+                localStorage.removeItem('authToken');
+                window.location.href = './login.html';
+            });
             transactionForm.addEventListener('submit', handleAddTransaction);
-            // ... otros event listeners de tus modales sin cambios ...
-            
-            // Nuevos listeners
             filterButton.addEventListener('click', updateDashboard);
             analyzeButton.addEventListener('click', getAIAnalysis);
+            transactionTypeSelect.addEventListener('change', () => {
+                const isEgreso = transactionTypeSelect.value === 'egreso';
+                populateCategoryOptions(categorySelect, transactionTypeSelect.value);
+                expenseDivisionSection.classList.toggle('hidden', !isEgreso);
+                installmentsSection.classList.toggle('hidden', !isEgreso);
+            });
+            isInstallmentCheckbox.addEventListener('change', () => {
+                installmentDetails.classList.toggle('hidden', !isInstallmentCheckbox.checked);
+            });
+            transactionTableBody.addEventListener('click', (event) => {
+                const editButton = event.target.closest('.edit-button');
+                const deleteButton = event.target.closest('.delete-button');
+                if (editButton) openEditModal(editButton.dataset.id);
+                if (deleteButton) openConfirmModal(deleteButton.dataset.id);
+            });
+            editModal.querySelector('.close-button').addEventListener('click', closeEditModal);
+            editForm.addEventListener('submit', handleEditTransaction);
+            cancelDeleteBtn.addEventListener('click', closeConfirmModal);
+            confirmDeleteBtn.addEventListener('click', handleDeleteTransaction);
+            window.addEventListener('click', (event) => { 
+                if (event.target == editModal) closeEditModal(); 
+                if (event.target == confirmModal) closeConfirmModal();
+            });
+            generatePdfBtn.addEventListener('click', () => alert('La función para generar PDF aún no está implementada.'));
         }
 
+        // --- LÓGICA DE ACCIONES ---
         async function handleAddTransaction(e) {
             e.preventDefault();
-            // ... tu lógica para recolectar datos del formulario ...
+            const type = transactionTypeSelect.value;
+            const newTransactionData = {
+                type,
+                description: document.getElementById('description').value,
+                amount: parseFloat(document.getElementById('amount').value),
+                category: categorySelect.value,
+                date: document.getElementById('date').value,
+            };
+            
+            if (type === 'egreso') {
+                newTransactionData.originalAmount = newTransactionData.amount;
+                newTransactionData.divisionFactor = parseInt(document.getElementById('expenseDivisionFactor').value) || 1;
+                newTransactionData.amount = newTransactionData.originalAmount / newTransactionData.divisionFactor;
+                const isInstallment = isInstallmentCheckbox.checked;
+                newTransactionData.isInstallment = isInstallment;
+                if (isInstallment) {
+                    newTransactionData.totalInstallments = parseInt(document.getElementById('totalInstallments').value);
+                    newTransactionData.paidInstallments = parseInt(document.getElementById('paidInstallments').value);
+                }
+            }
             try {
                 const savedTransaction = await apiRequest('/transactions', 'POST', newTransactionData);
                 allTransactions.unshift(savedTransaction);
                 renderTransactionsList(allTransactions);
-                await updateDashboard(); // Actualiza resumen y gráfico
+                await updateDashboard();
                 transactionForm.reset();
                 document.getElementById('date').valueAsDate = new Date();
-                // ...
-            } catch (error) { console.error('Error:', error); }
+                transactionTypeSelect.dispatchEvent(new Event('change'));
+            } catch (error) { console.error('Error agregando transacción:', error); alert(error.message); }
         }
 
-        // Tu función para abrir modal de edición, eliminar, etc. van aquí sin cambios
-        // ...
+        async function handleEditTransaction(e) {
+            e.preventDefault();
+            const id = document.getElementById('editTransactionId').value;
+            const type = document.getElementById('editTransactionType').value;
+            const updatedData = {
+                description: document.getElementById('editDescription').value,
+                amount: parseFloat(document.getElementById('editAmount').value),
+                category: document.getElementById('editCategory').value,
+            };
+            if (type === 'egreso') {
+                updatedData.divisionFactor = parseInt(document.getElementById('editExpenseDivisionFactor').value);
+                updatedData.isInstallment = document.getElementById('editIsInstallment').checked;
+                if (updatedData.isInstallment) {
+                    updatedData.totalInstallments = parseInt(document.getElementById('editTotalInstallments').value);
+                    updatedData.paidInstallments = parseInt(document.getElementById('editPaidInstallments').value);
+                }
+            }
+            try {
+                const updatedTransaction = await apiRequest(`/transactions/${id}`, 'PUT', updatedData);
+                const index = allTransactions.findIndex(t => t._id === id);
+                if (index !== -1) allTransactions[index] = updatedTransaction;
+                renderTransactionsList(allTransactions);
+                await updateDashboard();
+                closeEditModal();
+            } catch (error) { console.error('Error actualizando:', error); alert(error.message); }
+        }
+        
+        async function handleDeleteTransaction() {
+            if (transactionToDeleteId) {
+                try {
+                    await apiRequest(`/transactions/${transactionToDeleteId}`, 'DELETE');
+                    allTransactions = allTransactions.filter(t => t._id !== transactionToDeleteId);
+                    renderTransactionsList(allTransactions);
+                    await updateDashboard();
+                } catch (error) { console.error('Error al eliminar:', error); alert(error.message); }
+                finally { closeConfirmModal(); }
+            }
+        }
 
-        const formatCurrency = (amount) => (amount || 0).toLocaleString('es-AR', { style: 'currency', currency: 'ARS' });
+        // --- FUNCIONES UTILITARIAS Y MODALES ---
+        function openEditModal(id) {
+            const t = allTransactions.find(t => t._id === id);
+            if (!t) return;
+            document.getElementById('editTransactionId').value = t._id;
+            document.getElementById('editTransactionType').value = t.type;
+            document.getElementById('editDescription').value = t.description;
+            document.getElementById('editAmount').value = t.originalAmount != null ? t.originalAmount : t.amount;
+            populateCategoryOptions(document.getElementById('editCategory'), t.type);
+            document.getElementById('editCategory').value = t.category;
+            const isEgreso = t.type === 'egreso';
+            document.getElementById('editExpenseDivisionSection').classList.toggle('hidden', !isEgreso);
+            document.getElementById('editInstallmentsSection').classList.toggle('hidden', !isEgreso);
+            if(isEgreso) {
+                document.getElementById('editIsInstallment').checked = t.isInstallment;
+                document.getElementById('editInstallmentDetails').classList.toggle('hidden', !t.isInstallment);
+                if(t.isInstallment) {
+                    document.getElementById('editTotalInstallments').value = t.totalInstallments;
+                    document.getElementById('editPaidInstallments').value = t.paidInstallments;
+                }
+            }
+            editModal.style.display = 'block';
+        }
+        function closeEditModal() { editModal.style.display = 'none'; }
+        function openConfirmModal(id) { transactionToDeleteId = id; confirmModal.style.display = 'block'; }
+        function closeConfirmModal() { transactionToDeleteId = null; confirmModal.style.display = 'none'; }
+        function populateCategoryOptions(select, type) {
+            select.innerHTML = '';
+            categories[type].forEach(cat => select.add(new Option(cat, cat)));
+        }
+        const formatCurrency = (amount) => (amount != null ? amount : 0).toLocaleString('es-AR', { style: 'currency', currency: 'ARS' });
+
     </script>
 </body>
 </html>
-
