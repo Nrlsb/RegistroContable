@@ -137,8 +137,21 @@
         }
 
         // --- API & DATA ---
-        async function apiRequest(endpoint, method = 'GET', body = null) { /* ... Same as before ... */ }
-        
+        async function apiRequest(endpoint, method = 'GET', body = null) {
+            const options = { method, headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' } };
+            if (body) options.body = JSON.stringify(body);
+            const response = await fetch(`${API_URL}${endpoint}`, options);
+            if (response.status === 401) {
+                localStorage.removeItem('authToken'); window.location.href = './login.html';
+                throw new Error('Sesión expirada.');
+            }
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({ msg: 'Error de comunicación' }));
+                throw new Error(errorData.msg || 'Ocurrió un error');
+            }
+            return response.status === 204 ? null : response.json();
+        }
+
         async function updateDashboard() {
             const params = new URLSearchParams();
             const startDate = document.getElementById('startDate').value;
@@ -154,7 +167,13 @@
         }
 
         // --- RENDERING ---
-        function renderSummary(summary) { /* ... Same as before ... */ }
+        function renderSummary(summary) {
+             document.getElementById('totalIncome').textContent = formatCurrency(summary.totalIncome);
+            document.getElementById('totalExpenses').textContent = formatCurrency(summary.totalExpenses);
+            const balanceEl = document.getElementById('currentBalance');
+            balanceEl.textContent = formatCurrency(summary.balance);
+            balanceEl.className = `text-3xl font-semibold mt-1 ${summary.balance < 0 ? 'text-red-500' : 'text-indigo-500'}`;
+        }
 
         function renderTransactionsList(transactions) {
             const tbody = document.getElementById('transactionTableBody');
@@ -179,7 +198,30 @@
             });
         }
         
-        function renderChart(expensesByCategory) { /* ... Same as before ... */ }
+        function renderChart(expensesByCategory) {
+            const ctx = document.getElementById('expensesChart').getContext('2d');
+            if (expensesChart) expensesChart.destroy();
+            
+            const isDark = document.documentElement.classList.contains('dark');
+            Chart.defaults.color = isDark ? '#9ca3af' : '#6b7280';
+            
+            expensesChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(expensesByCategory).length > 0 ? Object.keys(expensesByCategory) : ['Sin Gastos'],
+                    datasets: [{
+                        data: Object.values(expensesByCategory).length > 0 ? Object.values(expensesByCategory) : [1],
+                        backgroundColor: ['#4f46e5', '#f97316', '#10b981', '#ef4444', '#8b5cf6', '#f59e0b', '#64748b'],
+                        borderColor: isDark ? '#1f2937' : '#f9fafb',
+                        borderWidth: 4, hoverOffset: 8
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false, cutout: '70%',
+                    plugins: { legend: { position: 'bottom', labels: { padding: 20, font: { size: 12 } } } }
+                }
+            });
+        }
 
         // --- EVENT LISTENERS & HANDLERS ---
         function setupEventListeners() {
@@ -189,14 +231,10 @@
                 applyTheme(newTheme);
                 if(expensesChart) updateDashboard();
             });
-            document.getElementById('logoutBtn').addEventListener('click', () => {
-                localStorage.removeItem('authToken'); window.location.href = './login.html';
-            });
+            document.getElementById('logoutBtn').addEventListener('click', () => { localStorage.removeItem('authToken'); window.location.href = './login.html'; });
             document.getElementById('transactionForm').addEventListener('submit', handleAddTransaction);
             document.getElementById('transactionType').addEventListener('change', (e) => updateFormForType(e.target.value));
-            document.getElementById('isInstallment').addEventListener('change', (e) => {
-                document.getElementById('installmentDetails').classList.toggle('hidden', !e.target.checked);
-            });
+            document.getElementById('isInstallment').addEventListener('change', (e) => document.getElementById('installmentDetails').classList.toggle('hidden', !e.target.checked));
             document.getElementById('filter-button').addEventListener('click', updateDashboard);
             document.getElementById('analyze-button').addEventListener('click', getAIAnalysis);
             document.getElementById('transactionTableBody').addEventListener('click', (e) => {
@@ -207,7 +245,30 @@
             });
         }
         
-        async function handleAddTransaction(e) { /* ... Same as before ... */ }
+        async function handleAddTransaction(e) {
+            e.preventDefault();
+            const form = e.target;
+            const type = form.transactionType.value;
+            const data = { type, description: form.description.value, amount: parseFloat(form.amount.value), category: form.category.value, date: form.date.value };
+            if (type === 'egreso') {
+                data.originalAmount = data.amount;
+                data.divisionFactor = parseInt(form.expenseDivisionFactor.value);
+                data.amount /= data.divisionFactor;
+                data.isInstallment = form.isInstallment.checked;
+                if (data.isInstallment) {
+                    data.totalInstallments = parseInt(form.totalInstallments.value);
+                    data.paidInstallments = parseInt(form.paidInstallments.value);
+                }
+            }
+            try {
+                const saved = await apiRequest('/transactions', 'POST', data);
+                allTransactions.unshift(saved);
+                renderTransactionsList(allTransactions);
+                await updateDashboard();
+                form.reset();
+                initializeForm();
+            } catch (error) { alert(error.message); }
+        }
         
         async function handleEditTransaction(e) {
             e.preventDefault();
@@ -233,9 +294,36 @@
             } catch (error) { alert(error.message); }
         }
         
-        async function handleDeleteTransaction() { /* ... Same as before ... */ }
+        async function handleDeleteTransaction() {
+            if (!transactionToDeleteId) return;
+            try {
+                await apiRequest(`/transactions/${transactionToDeleteId}`, 'DELETE');
+                allTransactions = allTransactions.filter(t => t._id !== transactionToDeleteId);
+                renderTransactionsList(allTransactions);
+                await updateDashboard();
+            } catch (error) { alert(error.message); }
+            finally { closeConfirmModal(); }
+        }
         
-        async function getAIAnalysis() { /* ... Same as before ... */ }
+        async function getAIAnalysis() {
+            const btn = document.getElementById('analyze-button');
+            const container = document.getElementById('ai-response-container');
+            container.innerHTML = '<div class="flex justify-center items-center h-full"><div class="loader"></div></div>';
+            btn.disabled = true;
+
+            try {
+                const body = {
+                    startDate: document.getElementById('startDate').value || null,
+                    endDate: document.getElementById('endDate').value || null,
+                };
+                const res = await apiRequest('/transactions/analyze-ai', 'POST', body);
+                container.innerHTML = markdownConverter.makeHtml(res.analysis);
+            } catch (error) {
+                container.innerHTML = `<p class="text-red-500">${error.message}</p>`;
+            } finally {
+                btn.disabled = false;
+            }
+        }
         
         // --- MODALS & UTILS ---
         function initializeForm() {
@@ -316,10 +404,9 @@
 
         function closeEditModal() { document.getElementById('editModal').style.display = 'none'; }
         function closeConfirmModal() { document.getElementById('confirmModal').style.display = 'none'; }
-        function populateCategoryOptions(select, type) { /* ... Same as before ... */ }
+        function populateCategoryOptions(select, type) { select.innerHTML = ''; categories[type].forEach(cat => select.add(new Option(cat, cat))); }
         const formatCurrency = (amount) => (amount != null ? amount : 0).toLocaleString('es-AR', { style: 'currency', currency: 'ARS' });
 
-        // --- GLOBAL EVENT LISTENERS FOR MODALS ---
         window.addEventListener('click', (event) => {
             if (event.target == document.getElementById('editModal')) closeEditModal();
             if (event.target == document.getElementById('confirmModal')) closeConfirmModal();
