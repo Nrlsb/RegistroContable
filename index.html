@@ -44,7 +44,55 @@
                 <section class="p-6 bg-white dark:bg-gray-800 rounded-2xl shadow-lg">
                     <h2 class="text-xl font-bold mb-4 text-gray-900 dark:text-white">Agregar Transacción</h2>
                     <form id="transactionForm" class="space-y-4">
-                        <!-- Form fields are the same as before -->
+                        <div>
+                            <label for="transactionType" class="block text-sm font-medium">Tipo</label>
+                            <select id="transactionType" required class="input-field"></select>
+                        </div>
+                        <div>
+                            <label for="description" class="block text-sm font-medium">Descripción</label>
+                            <input type="text" id="description" required class="input-field" placeholder="Ej: Compra semanal">
+                        </div>
+                        <div>
+                            <label for="amount" class="block text-sm font-medium">Monto</label>
+                            <input type="number" id="amount" min="0.01" step="0.01" required class="input-field" placeholder="1500.00">
+                        </div>
+                        <div>
+                            <label for="category" class="block text-sm font-medium">Categoría</label>
+                            <select id="category" required class="input-field"></select>
+                        </div>
+                        <div>
+                            <label for="date" class="block text-sm font-medium">Fecha</label>
+                            <input type="date" id="date" required class="input-field">
+                        </div>
+
+                        <!-- Opciones solo para Egresos -->
+                        <div id="expenseOptionsSection" class="hidden space-y-4 pt-2 border-t border-gray-200 dark:border-gray-700">
+                            <div>
+                                <label for="expenseDivisionFactor" class="block text-sm font-medium">División</label>
+                                <select id="expenseDivisionFactor" class="input-field">
+                                    <option value="1">Individual</option>
+                                    <option value="2">Compartido (x2)</option>
+                                </select>
+                            </div>
+                            <label class="flex items-center space-x-2 cursor-pointer">
+                                <input type="checkbox" id="isInstallment" class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                                <span class="text-sm">¿Es en cuotas?</span>
+                            </label>
+                            <div id="installmentDetails" class="hidden space-y-2 pl-4 border-l-2 border-gray-200 dark:border-gray-700">
+                                <div>
+                                    <label for="totalInstallments" class="text-sm">Total de cuotas:</label>
+                                    <input type="number" id="totalInstallments" class="input-field" placeholder="3">
+                                </div>
+                                <div>
+                                    <label for="paidInstallments" class="text-sm">Cuotas pagadas:</label>
+                                    <input type="number" id="paidInstallments" class="input-field" placeholder="1">
+                                </div>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 px-4 rounded-lg shadow-md">
+                            Agregar
+                        </button>
                     </form>
                 </section>
             </div>
