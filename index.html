@@ -466,15 +466,20 @@
         }
 
         function updateFormForType(type, formPrefix = '') {
-            const categorySelect = document.getElementById(`${formPrefix}category`);
+            // BUG FIX: Corrected casing for dynamically built IDs
+            const categorySelect = document.getElementById(`${formPrefix}Category`);
+            const expenseOptions = document.getElementById(`${formPrefix}ExpenseOptionsSection`);
+            const isInstallmentCheck = document.getElementById(`${formPrefix}IsInstallment`);
+            const installmentDetails = document.getElementById(`${formPrefix}InstallmentDetails`);
+            
             if (!categorySelect) return;
             populateCategoryOptions(categorySelect, type);
+            
             const isEgreso = type === 'egreso';
-            const expenseOptions = document.getElementById(`${formPrefix}expenseOptionsSection`);
+
             if (expenseOptions) expenseOptions.classList.toggle('hidden', !isEgreso);
+            
             if (!isEgreso) {
-                const isInstallmentCheck = document.getElementById(`${formPrefix}isInstallment`);
-                const installmentDetails = document.getElementById(`${formPrefix}installmentDetails`);
                 if(isInstallmentCheck) isInstallmentCheck.checked = false;
                 if(installmentDetails) installmentDetails.classList.add('hidden');
             }
