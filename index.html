@@ -16,22 +16,22 @@
         .modal { display: none; position: fixed; z-index: 50; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.6); align-items: center; justify-content: center; }
         .modal-content { position: relative; margin: auto; padding: 2rem; border-radius: 0.75rem; width: 90%; max-width: 450px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04); }
         .prose h3 { margin-top: 1em; margin-bottom: 0.5em; } .prose ul { padding-left: 1.5em; } .prose li { margin-top: 0.25em; }
-        .loader { border: 4px solid #e5e7eb; border-top: 4px solid #111827; border-radius: 50%; width: 32px; height: 32px; animation: spin 1s linear infinite; }
+        .loader { border: 4px solid #e2e8f0; border-top: 4px solid #1e293b; border-radius: 50%; width: 32px; height: 32px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         .input-field { display: block; width: 100%; margin-top: 0.25rem; padding: 0.75rem; border-width: 1px; border-radius: 0.5rem; background-color: transparent; border-color: #d1d5db; }
     </style>
 </head>
-<body class="bg-gray-100 text-gray-800">
+<body class="bg-slate-100 text-slate-700">
 
     <!-- Pantalla de bienvenida / creación del primer grupo -->
-    <div id="welcome-overlay" class="fixed inset-0 z-50 flex-col items-center justify-center bg-gray-100 hidden">
+    <div id="welcome-overlay" class="fixed inset-0 z-50 flex-col items-center justify-center bg-slate-100 hidden">
         <div class="text-center p-8 max-w-lg">
-            <h2 class="text-3xl font-bold text-gray-900 mb-4">¡Bienvenido/a!</h2>
-            <p class="text-gray-600 mb-8">Para empezar, crea tu primer grupo contable. Puedes tener varios, por ejemplo: "Finanzas Personales", "Negocio", "Vacaciones", etc.</p>
+            <h2 class="text-3xl font-bold text-slate-900 mb-4">¡Bienvenido/a!</h2>
+            <p class="text-slate-600 mb-8">Para empezar, crea tu primer grupo contable. Puedes tener varios, por ejemplo: "Finanzas Personales", "Negocio", "Vacaciones", etc.</p>
             <div class="w-full max-w-sm mx-auto">
                  <form id="firstLedgerForm" class="flex items-center gap-2">
                     <input type="text" id="firstLedgerName" placeholder="Ej: Mis Finanzas Personales" required class="input-field flex-grow">
-                    <button type="submit" class="bg-black hover:bg-gray-800 text-white font-bold py-3 px-6 rounded-lg">Crear</button>
+                    <button type="submit" class="bg-slate-800 hover:bg-slate-900 text-white font-bold py-3 px-6 rounded-lg">Crear</button>
                 </form>
             </div>
         </div>
@@ -40,27 +40,27 @@
     <div id="main-content" class="container mx-auto max-w-7xl p-4 sm:p-6 lg:p-8 hidden">
         <header class="mb-8 flex flex-wrap justify-between items-center gap-4">
             <div class="flex items-center gap-4">
-                <h1 class="text-4xl font-bold text-gray-900">Dashboard</h1>
+                <h1 class="text-4xl font-bold text-slate-900">Dashboard</h1>
                 <div id="ledger-controls" class="flex items-center gap-2">
                      <select id="ledger-select" class="input-field text-sm font-medium"></select>
-                     <button id="new-ledger-btn" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold p-2.5 rounded-lg">+</button>
+                     <button id="new-ledger-btn" class="bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold p-2.5 rounded-lg">+</button>
                 </div>
             </div>
             <div class="flex items-center space-x-4">
-                <button id="logoutBtn" class="bg-gray-800 hover:bg-black text-white font-bold py-2 px-4 rounded-lg shadow-sm">Cerrar Sesión</button>
+                <button id="logoutBtn" class="bg-slate-800 hover:bg-slate-900 text-white font-bold py-2 px-4 rounded-lg shadow-sm">Cerrar Sesión</button>
             </div>
         </header>
 
         <section class="mb-8 grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div class="p-6 bg-white rounded-2xl shadow-lg"><h3 class="text-sm font-medium text-gray-500">Ingresos Totales</h3><p id="totalIncome" class="text-3xl font-semibold text-emerald-600 mt-1">$0.00</p></div>
-            <div class="p-6 bg-white rounded-2xl shadow-lg"><h3 class="text-sm font-medium text-gray-500">Egresos Totales</h3><p id="totalExpenses" class="text-3xl font-semibold text-red-600 mt-1">$0.00</p></div>
-            <div class="p-6 bg-white rounded-2xl shadow-lg"><h3 class="text-sm font-medium text-gray-500">Saldo Actual</h3><p id="currentBalance" class="text-3xl font-semibold text-gray-900 mt-1">$0.00</p></div>
+            <div class="p-6 bg-white rounded-2xl shadow-lg"><h3 class="text-sm font-medium text-slate-500">Ingresos Totales</h3><p id="totalIncome" class="text-3xl font-semibold text-emerald-600 mt-1">$0.00</p></div>
+            <div class="p-6 bg-white rounded-2xl shadow-lg"><h3 class="text-sm font-medium text-slate-500">Egresos Totales</h3><p id="totalExpenses" class="text-3xl font-semibold text-red-600 mt-1">$0.00</p></div>
+            <div class="p-6 bg-white rounded-2xl shadow-lg"><h3 class="text-sm font-medium text-slate-500">Saldo Actual</h3><p id="currentBalance" class="text-3xl font-semibold text-slate-800 mt-1">$0.00</p></div>
         </section>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div class="lg:col-span-1 space-y-8">
                 <section class="p-6 bg-white rounded-2xl shadow-lg">
-                    <h2 class="text-xl font-bold mb-4 text-gray-900">Agregar Transacción</h2>
+                    <h2 class="text-xl font-bold mb-4 text-slate-800">Agregar Transacción</h2>
                     <form id="transactionForm" class="space-y-4">
                         <div>
                             <label for="transactionType" class="block text-sm font-medium">Tipo</label>
@@ -87,7 +87,7 @@
                             <input type="date" id="date" required class="input-field">
                         </div>
 
-                        <div id="expenseOptionsSection" class="hidden space-y-4 pt-2 border-t border-gray-200">
+                        <div id="expenseOptionsSection" class="hidden space-y-4 pt-2 border-t border-slate-200">
                             <div>
                                 <label for="expenseDivisionFactor" class="block text-sm font-medium">División</label>
                                 <select id="expenseDivisionFactor" class="input-field">
@@ -96,10 +96,10 @@
                                 </select>
                             </div>
                             <label class="flex items-center space-x-2 cursor-pointer">
-                                <input type="checkbox" id="isInstallment" class="h-4 w-4 rounded border-gray-300 text-black focus:ring-black">
+                                <input type="checkbox" id="isInstallment" class="h-4 w-4 rounded border-gray-300 text-slate-800 focus:ring-slate-800">
                                 <span class="text-sm">¿Es en cuotas?</span>
                             </label>
-                            <div id="installmentDetails" class="hidden space-y-2 pl-4 border-l-2 border-gray-200">
+                            <div id="installmentDetails" class="hidden space-y-2 pl-4 border-l-2 border-slate-200">
                                 <div>
                                     <label for="totalInstallments" class="text-sm">Total de cuotas:</label>
                                     <input type="number" id="totalInstallments" class="input-field" placeholder="3">
@@ -111,7 +111,7 @@
                             </div>
                         </div>
 
-                        <button type="submit" class="w-full bg-black hover:bg-gray-800 text-white font-bold py-2.5 px-4 rounded-lg shadow-md">
+                        <button type="submit" class="w-full bg-slate-800 hover:bg-slate-900 text-white font-bold py-2.5 px-4 rounded-lg shadow-md">
                             Agregar
                         </button>
                     </form>
@@ -119,49 +119,49 @@
             </div>
             <div class="lg:col-span-2 space-y-8">
                 <section class="p-6 bg-white rounded-2xl shadow-lg">
-                    <h2 class="text-xl font-bold mb-4 text-gray-900">Análisis y Herramientas</h2>
+                    <h2 class="text-xl font-bold mb-4 text-slate-800">Análisis y Herramientas</h2>
                     <div class="flex flex-wrap gap-4 mb-6 items-end">
                         <div><label for="startDate" class="block text-sm font-medium">Desde</label><input type="date" id="startDate" class="input-field"></div>
                         <div><label for="endDate" class="block text-sm font-medium">Hasta</label><input type="date" id="endDate" class="input-field"></div>
-                        <button id="filter-button" class="bg-gray-700 hover:bg-gray-800 text-white font-bold py-2.5 px-4 rounded-lg">Filtrar</button>
-                        <button id="analyze-button" class="bg-black hover:bg-gray-800 text-white font-bold py-2.5 px-4 rounded-lg">Análisis IA</button>
-                        <button id="pdf-button" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2.5 px-4 rounded-lg flex items-center gap-2">
+                        <button id="filter-button" class="bg-slate-700 hover:bg-slate-800 text-white font-bold py-2.5 px-4 rounded-lg">Filtrar</button>
+                        <button id="analyze-button" class="bg-slate-800 hover:bg-slate-900 text-white font-bold py-2.5 px-4 rounded-lg">Análisis IA</button>
+                        <button id="pdf-button" class="bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold py-2.5 px-4 rounded-lg flex items-center gap-2">
                             <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
                             Exportar PDF
                         </button>
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
                         <div class="relative h-64 md:h-80"><canvas id="expensesChart"></canvas></div>
-                        <div id="ai-response-container" class="prose prose-sm max-w-none p-4 bg-gray-100 rounded-lg min-h-[200px] border border-gray-200 overflow-y-auto">
-                           <p class="text-gray-500">Aquí aparecerán los consejos de FinancIA.</p>
+                        <div id="ai-response-container" class="prose prose-sm max-w-none p-4 bg-slate-100 rounded-lg min-h-[200px] border border-slate-200 overflow-y-auto">
+                           <p class="text-slate-500">Aquí aparecerán los consejos de FinancIA.</p>
                         </div>
                     </div>
                 </section>
                 <section class="p-6 bg-white rounded-2xl shadow-lg">
-                    <h2 class="text-xl font-bold text-gray-900 mb-4">Historial de Transacciones</h2>
+                    <h2 class="text-xl font-bold text-slate-800 mb-4">Historial de Transacciones</h2>
                     <div class="overflow-y-auto max-h-[400px]">
                         <table class="min-w-full">
-                            <tbody id="transactionTableBody" class="divide-y divide-gray-200"></tbody>
+                            <tbody id="transactionTableBody" class="divide-y divide-slate-200"></tbody>
                         </table>
                     </div>
-                    <p id="noTransactionsMessage" class="mt-4 text-center text-gray-500 hidden">Aún no hay transacciones registradas.</p>
+                    <p id="noTransactionsMessage" class="mt-4 text-center text-slate-500 hidden">Aún no hay transacciones registradas.</p>
                 </section>
             </div>
         </div>
     </div>
 
-    <div id="loader" class="fixed inset-0 flex items-center justify-center bg-gray-100 z-50"><div class="loader"></div></div>
+    <div id="loader" class="fixed inset-0 flex items-center justify-center bg-slate-100 z-50"><div class="loader"></div></div>
     
     <!-- Modal para crear nuevo grupo -->
     <div id="newLedgerModal" class="modal">
         <div class="modal-content bg-white">
-            <h3 class="text-xl font-semibold mb-4 text-gray-900">Crear Nuevo Grupo Contable</h3>
+            <h3 class="text-xl font-semibold mb-4 text-slate-800">Crear Nuevo Grupo Contable</h3>
             <form id="newLedgerForm">
                 <label for="newLedgerName" class="block text-sm font-medium">Nombre del Grupo</label>
                 <input type="text" id="newLedgerName" required class="input-field mt-1" placeholder="Ej: Gastos del Trabajo">
                 <div class="flex justify-end space-x-4 mt-6">
-                    <button type="button" id="cancelNewLedgerBtn" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg">Cancelar</button>
-                    <button type="submit" class="bg-black hover:bg-gray-800 text-white font-bold py-2 px-4 rounded-lg">Crear</button>
+                    <button type="button" id="cancelNewLedgerBtn" class="bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold py-2 px-4 rounded-lg">Cancelar</button>
+                    <button type="submit" class="bg-slate-800 hover:bg-slate-900 text-white font-bold py-2 px-4 rounded-lg">Crear</button>
                 </div>
             </form>
         </div>
@@ -170,8 +170,8 @@
     <div id="editModal" class="modal">
         <div class="modal-content bg-white">
             <div class="flex justify-between items-center mb-4">
-                <h3 class="text-xl font-semibold text-gray-900">Editar Transacción</h3>
-                <button id="closeEditModalBtn" class="p-1 rounded-full text-gray-500 hover:bg-gray-200">&times;</button>
+                <h3 class="text-xl font-semibold text-slate-800">Editar Transacción</h3>
+                <button id="closeEditModalBtn" class="p-1 rounded-full text-slate-500 hover:bg-slate-200">&times;</button>
             </div>
             <form id="editForm" class="space-y-4">
                 <input type="hidden" id="editTransactionId">
@@ -192,7 +192,7 @@
                     <label for="editNewCategory" class="block text-sm font-medium">Nombre de la nueva categoría</label>
                     <input type="text" id="editNewCategory" class="input-field" placeholder="Ej: Supermercado">
                 </div>
-                <div id="editExpenseOptionsSection" class="hidden space-y-4 pt-4 border-t border-gray-200">
+                <div id="editExpenseOptionsSection" class="hidden space-y-4 pt-4 border-t border-slate-200">
                     <div>
                         <label for="editExpenseDivisionFactor" class="block text-sm font-medium">División</label>
                         <select id="editExpenseDivisionFactor" class="input-field">
@@ -201,10 +201,10 @@
                         </select>
                     </div>
                     <label class="flex items-center space-x-2 cursor-pointer">
-                        <input type="checkbox" id="editIsInstallment" class="h-4 w-4 rounded border-gray-300 text-black focus:ring-black">
+                        <input type="checkbox" id="editIsInstallment" class="h-4 w-4 rounded border-gray-300 text-slate-800 focus:ring-slate-800">
                         <span class="text-sm">En cuotas</span>
                     </label>
-                    <div id="editInstallmentDetails" class="hidden space-y-2 pl-4 border-l-2 border-gray-200">
+                    <div id="editInstallmentDetails" class="hidden space-y-2 pl-4 border-l-2 border-slate-200">
                         <div>
                             <label for="editTotalInstallments" class="text-sm">Total de cuotas:</label>
                             <input type="number" id="editTotalInstallments" class="input-field">
@@ -215,18 +215,18 @@
                         </div>
                     </div>
                 </div>
-                <button type="submit" class="w-full bg-black hover:bg-gray-800 text-white font-bold py-2.5 px-4 rounded-lg">Guardar Cambios</button>
+                <button type="submit" class="w-full bg-slate-800 hover:bg-slate-900 text-white font-bold py-2.5 px-4 rounded-lg">Guardar Cambios</button>
             </form>
         </div>
     </div>
 
     <div id="confirmModal" class="modal">
         <div class="modal-content bg-white">
-            <h3 class="text-xl font-semibold mb-4 text-gray-900">Confirmar Eliminación</h3>
+            <h3 class="text-xl font-semibold mb-4 text-slate-800">Confirmar Eliminación</h3>
             <p class="mb-6">¿Estás seguro? Esta acción no se puede deshacer.</p>
             <div class="flex justify-end space-x-4">
-                <button id="cancelDeleteBtn" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg">Cancelar</button>
-                <button id="confirmDeleteBtn" class="bg-gray-800 hover:bg-black text-white font-bold py-2 px-4 rounded-lg">Eliminar</button>
+                <button id="cancelDeleteBtn" class="bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold py-2 px-4 rounded-lg">Cancelar</button>
+                <button id="confirmDeleteBtn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg">Eliminar</button>
             </div>
         </div>
     </div>
@@ -286,7 +286,6 @@
                 allTransactions = await apiRequest(`/transactions?ledgerId=${currentLedgerId}`);
                 displayedTransactions = [...allTransactions];
                 
-                // Reset categories and populate from current ledger's transactions
                 categories.ingreso = ['Sueldo', 'Ventas', 'Inversiones', 'Regalo', 'Otros Ingresos'];
                 categories.egreso = ['Comida', 'Transporte', 'Servicios', 'Entretenimiento', 'Salud', 'Educación', 'Ropa', 'Impuestos', 'Alquiler/Hipoteca', 'Otros Gastos'];
                 allTransactions.forEach(t => {
@@ -373,7 +372,7 @@
             document.getElementById('totalExpenses').textContent = formatCurrency(summary.totalExpenses);
             const balanceEl = document.getElementById('currentBalance');
             balanceEl.textContent = formatCurrency(summary.balance);
-            balanceEl.className = `text-3xl font-semibold mt-1 ${summary.balance < 0 ? 'text-red-600' : 'text-gray-900'}`;
+            balanceEl.className = `text-3xl font-semibold mt-1 ${summary.balance < 0 ? 'text-red-600' : 'text-slate-800'}`;
         }
 
         function renderTransactionsList(transactions) {
@@ -395,22 +394,22 @@
                         details.push(`Compartido &divide;${t.divisionFactor}`);
                     }
                     if (details.length > 0) {
-                        detailsHtml = `<span class="ml-2 text-xs font-mono bg-gray-200 px-1.5 py-0.5 rounded-md">${details.join(' | ')}</span>`;
+                        detailsHtml = `<span class="ml-2 text-xs font-mono bg-slate-200 px-1.5 py-0.5 rounded-md">${details.join(' | ')}</span>`;
                     }
                 }
 
                 row.innerHTML = `
                     <td class="py-4 pr-3">
                         <div class="flex items-center justify-start">
-                            <p class="font-semibold text-gray-900">${t.description}</p>
+                            <p class="font-semibold text-slate-800">${t.description}</p>
                             ${detailsHtml}
                         </div>
-                        <p class="text-xs text-gray-500">${t.category} &bull; ${new Date(t.date).toLocaleDateString()}</p>
+                        <p class="text-xs text-slate-500">${t.category} &bull; ${new Date(t.date).toLocaleDateString()}</p>
                     </td>
                     <td class="py-4 pr-3 text-right font-medium ${typeClass}">${formatCurrency(amount)}</td>
                     <td class="py-4 text-right space-x-2">
-                        <button data-id="${t._id}" class="edit-button p-2 rounded-full text-blue-600 hover:bg-gray-200"><svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.5L14.732 3.732z"></path></svg></button>
-                        <button data-id="${t._id}" class="delete-button p-2 rounded-full text-red-600 hover:bg-gray-200"><svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button>
+                        <button data-id="${t._id}" class="edit-button p-2 rounded-full text-blue-600 hover:bg-slate-200"><svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.5L14.732 3.732z"></path></svg></button>
+                        <button data-id="${t._id}" class="delete-button p-2 rounded-full text-red-600 hover:bg-slate-200"><svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button>
                     </td>
                 `;
                 tbody.appendChild(row);
@@ -422,7 +421,7 @@
             const ctx = document.getElementById('expensesChart').getContext('2d');
             if (expensesChart) expensesChart.destroy();
             
-            Chart.defaults.color = '#4b5563';
+            Chart.defaults.color = '#475569'; // slate-600
             
             expensesChart = new Chart(ctx, {
                 type: 'doughnut',
@@ -430,8 +429,8 @@
                     labels: Object.keys(expensesByCategory).length > 0 ? Object.keys(expensesByCategory) : ['Sin Gastos'],
                     datasets: [{
                         data: Object.values(expensesByCategory).length > 0 ? Object.values(expensesByCategory) : [1],
-                        backgroundColor: ['#111827', '#374151', '#4b5563', '#6b7280', '#9ca3af', '#d1d5db', '#e5e7eb'],
-                        borderColor: '#f3f4f6',
+                        backgroundColor: ['#0f172a', '#1e293b', '#334155', '#475569', '#64748b', '#94a3b8', '#cbd5e1'],
+                        borderColor: '#f1f5f9', // bg-slate-100
                         borderWidth: 4,
                         hoverOffset: 8
                     }]
@@ -485,7 +484,6 @@
                 if (event.target == document.getElementById('newLedgerModal')) closeNewLedgerModal();
             });
 
-            // Listeners for new ledger/group functionality
             document.getElementById('firstLedgerForm').addEventListener('submit', handleCreateFirstLedger);
             document.getElementById('new-ledger-btn').addEventListener('click', openNewLedgerModal);
             document.getElementById('cancelNewLedgerBtn').addEventListener('click', closeNewLedgerModal);
@@ -726,7 +724,7 @@
                     ['Saldo Final', currentBalance]
                 ],
                 theme: 'striped',
-                headStyles: { fillColor: [41, 128, 185] }
+                headStyles: { fillColor: [30, 41, 59] } // slate-800
             });
 
             const tableColumn = ["Fecha", "Descripción", "Categoría", "Tipo", "Monto"];
