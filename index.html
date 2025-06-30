@@ -8,6 +8,9 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/showdown/2.1.0/showdown.min.js"></script>
+    <!-- Librerías para PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
     <style>
         body { font-family: 'Inter', sans-serif; }
         .modal { display: none; position: fixed; z-index: 50; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.6); align-items: center; justify-content: center; }
@@ -97,12 +100,16 @@
             </div>
             <div class="lg:col-span-2 space-y-8">
                 <section class="p-6 bg-white rounded-2xl shadow-lg">
-                    <h2 class="text-xl font-bold mb-4 text-gray-900">Análisis y Asistente IA</h2>
+                    <h2 class="text-xl font-bold mb-4 text-gray-900">Análisis y Herramientas</h2>
                     <div class="flex flex-wrap gap-4 mb-6 items-end">
                         <div><label for="startDate" class="block text-sm font-medium">Desde</label><input type="date" id="startDate" class="input-field"></div>
                         <div><label for="endDate" class="block text-sm font-medium">Hasta</label><input type="date" id="endDate" class="input-field"></div>
                         <button id="filter-button" class="bg-gray-700 hover:bg-gray-800 text-white font-bold py-2.5 px-4 rounded-lg">Filtrar</button>
-                        <button id="analyze-button" class="bg-black hover:bg-gray-800 text-white font-bold py-2.5 px-4 rounded-lg">Pedir Análisis a IA</button>
+                        <button id="analyze-button" class="bg-black hover:bg-gray-800 text-white font-bold py-2.5 px-4 rounded-lg">Análisis IA</button>
+                        <button id="pdf-button" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2.5 px-4 rounded-lg flex items-center gap-2">
+                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                            Exportar PDF
+                        </button>
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
                         <div class="relative h-64 md:h-80"><canvas id="expensesChart"></canvas></div>
@@ -191,9 +198,12 @@
     </div>
 
     <script>
+        const { jsPDF } = window.jspdf;
+
         const API_URL = 'https://gestor-finanzas-backend.onrender.com/api';
         const token = localStorage.getItem('authToken');
         let allTransactions = [];
+        let displayedTransactions = [];
         let expensesChart = null;
         let lastChartData = {}; 
         let transactionToDeleteId = null;
@@ -214,13 +224,14 @@
         async function loadInitialData() {
             try {
                 allTransactions = await apiRequest('/transactions');
+                displayedTransactions = [...allTransactions];
                 allTransactions.forEach(t => {
                     if (!categories[t.type].includes(t.category)) {
                         categories[t.type].push(t.category);
                     }
                 });
-                renderTransactionsList(allTransactions);
-                await updateDashboard();
+                renderTransactionsList(displayedTransactions);
+                await updateDashboardSummary(displayedTransactions);
                 document.getElementById('loader').classList.add('hidden');
                 document.getElementById('main-content').classList.remove('hidden');
             } catch (error) {
@@ -244,18 +255,48 @@
             return response.status === 204 ? null : response.json();
         }
 
-        async function updateDashboard() {
-            const params = new URLSearchParams();
+        function filterTransactions() {
             const startDate = document.getElementById('startDate').value;
             const endDate = document.getElementById('endDate').value;
-            if(startDate) params.append('startDate', startDate);
-            if(endDate) params.append('endDate', endDate);
             
-            try {
-                const summary = await apiRequest(`/transactions/summary?${params}`);
-                renderSummary(summary);
-                renderChart(summary.expensesByCategory);
-            } catch (error) { alert('No se pudo cargar el resumen: ' + error.message); }
+            let filtered = [...allTransactions];
+
+            if (startDate) {
+                const start = new Date(startDate + 'T00:00:00');
+                filtered = filtered.filter(t => new Date(t.date) >= start);
+            }
+            if (endDate) {
+                const end = new Date(endDate + 'T23:59:59');
+                filtered = filtered.filter(t => new Date(t.date) <= end);
+            }
+            
+            displayedTransactions = filtered;
+            renderTransactionsList(displayedTransactions);
+            updateDashboardSummary(displayedTransactions);
+        }
+        
+        function updateDashboardSummary(transactionsToSummarize) {
+            let totalIncome = 0;
+            let totalExpenses = 0;
+            const expensesByCategory = {};
+
+            transactionsToSummarize.forEach(t => {
+                const amount = t.originalAmount != null ? t.originalAmount : t.amount;
+                if (t.type === 'ingreso') {
+                    totalIncome += amount;
+                } else {
+                    totalExpenses += amount;
+                    expensesByCategory[t.category] = (expensesByCategory[t.category] || 0) + amount;
+                }
+            });
+            const summary = {
+                totalIncome,
+                totalExpenses,
+                balance: totalIncome - totalExpenses,
+                expensesByCategory
+            };
+            renderSummary(summary);
+            renderChart(summary.expensesByCategory);
         }
 
         // --- RENDERING ---
@@ -357,8 +398,9 @@
             document.getElementById('editCategory').addEventListener('change', (e) => {
                 document.getElementById('editNewCategoryWrapper').classList.toggle('hidden', e.target.value !== '--new--');
             });
-            document.getElementById('filter-button').addEventListener('click', updateDashboard);
+            document.getElementById('filter-button').addEventListener('click', filterTransactions);
             document.getElementById('analyze-button').addEventListener('click', getAIAnalysis);
+            document.getElementById('pdf-button').addEventListener('click', generatePDF);
             document.getElementById('transactionTableBody').addEventListener('click', (e) => {
                 const editBtn = e.target.closest('.edit-button');
                 const deleteBtn = e.target.closest('.delete-button');
@@ -409,8 +451,7 @@
             try {
                 const saved = await apiRequest('/transactions', 'POST', data);
                 allTransactions.unshift(saved);
-                renderTransactionsList(allTransactions);
-                await updateDashboard();
+                filterTransactions();
                 form.reset();
                 initializeForm();
             } catch (error) { alert(error.message); }
@@ -455,8 +496,7 @@
                 const updated = await apiRequest(`/transactions/${id}`, 'PUT', data);
                 const index = allTransactions.findIndex(t => t._id === id);
                 if (index !== -1) allTransactions[index] = updated;
-                renderTransactionsList(allTransactions);
-                await updateDashboard();
+                filterTransactions();
                 closeEditModal();
             } catch (error) { alert(error.message); }
         }
@@ -466,8 +506,7 @@
             try {
                 await apiRequest(`/transactions/${transactionToDeleteId}`, 'DELETE');
                 allTransactions = allTransactions.filter(t => t._id !== transactionToDeleteId);
-                renderTransactionsList(allTransactions);
-                await updateDashboard();
+                filterTransactions();
             } catch (error) { alert(error.message); }
             finally { closeConfirmModal(); }
         }
@@ -575,7 +614,68 @@
         }
 
         const formatCurrency = (amount) => (amount != null ? amount : 0).toLocaleString('es-AR', { style: 'currency', currency: 'ARS' });
+
+        function generatePDF() {
+            const doc = new jsPDF();
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            const totalIncome = document.getElementById('totalIncome').textContent;
+            const totalExpenses = document.getElementById('totalExpenses').textContent;
+            const currentBalance = document.getElementById('currentBalance').textContent;
+
+            // Título
+            doc.setFontSize(18);
+            doc.text("Registro Contable", 14, 22);
+
+            // Información del reporte
+            doc.setFontSize(11);
+            doc.setTextColor(100);
+            const dateRangeText = startDate && endDate 
+                ? `Período: ${new Date(startDate + 'T00:00:00').toLocaleDateString()} - ${new Date(endDate + 'T00:00:00').toLocaleDateString()}`
+                : "Período: Todas las fechas";
+            doc.text(dateRangeText, 14, 30);
+            doc.text(`Fecha de exportación: ${new Date().toLocaleDateString()}`, 14, 36);
+
+            // Resumen
+            doc.setFontSize(14);
+            doc.text("Resumen General", 14, 50);
+            doc.autoTable({
+                startY: 55,
+                head: [['Concepto', 'Monto']],
+                body: [
+                    ['Ingresos Totales', totalIncome],
+                    ['Egresos Totales', totalExpenses],
+                    ['Saldo Final', currentBalance]
+                ],
+                theme: 'striped',
+                headStyles: { fillColor: [41, 128, 185] }
+            });
+
+            // Tabla de Transacciones
+            const tableColumn = ["Fecha", "Descripción", "Categoría", "Tipo", "Monto"];
+            const tableRows = [];
+
+            displayedTransactions.forEach(t => {
+                const transactionData = [
+                    new Date(t.date).toLocaleDateString(),
+                    t.description,
+                    t.category,
+                    t.type,
+                    formatCurrency(t.originalAmount != null ? t.originalAmount : t.amount)
+                ];
+                tableRows.push(transactionData);
+            });
+
+            doc.autoTable({
+                startY: doc.lastAutoTable.finalY + 15,
+                head: [tableColumn],
+                body: tableRows,
+                theme: 'grid',
+            });
+
+            // Guardar el PDF
+            doc.save('registro-contable.pdf');
+        }
     </script>
 </body>
 </html>
-
