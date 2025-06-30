@@ -133,19 +133,45 @@
                 <h3 class="text-xl font-semibold text-gray-900 dark:text-white">Editar Transacción</h3>
                 <button id="closeEditModalBtn" class="p-1 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700">&times;</button>
             </div>
+            <!-- Formulario de Edición Estático -->
             <form id="editForm" class="space-y-4">
                 <input type="hidden" id="editTransactionId">
                 <input type="hidden" id="editTransactionType">
-                <div><label for="editDescription" class="block text-sm font-medium">Descripción</label><input type="text" id="editDescription" required class="input-field"></div>
-                <div><label for="editAmount" class="block text-sm font-medium">Monto Total</label><input type="number" id="editAmount" min="0.01" step="0.01" required class="input-field"></div>
-                <div><label for="editCategory" class="block text-sm font-medium">Categoría</label><select id="editCategory" required class="input-field"></select></div>
-                <div id="editExpenseOptionsSection" class="hidden space-y-4 pt-2">
-                     <div><label for="editExpenseDivisionFactor" class="block text-sm font-medium">División</label><select id="editExpenseDivisionFactor" class="input-field"><option value="1">Individual</option><option value="2">Compartido (x2)</option></select></div>
-                     <label class="flex items-center space-x-2"><input type="checkbox" id="editIsInstallment" class="h-4 w-4 rounded"><span class="text-sm">En cuotas</span></label>
-                     <div id="editInstallmentDetails" class="hidden space-y-2 pl-4 border-l-2 border-gray-200 dark:border-gray-700">
-                        <div><label for="editTotalInstallments" class="text-sm">Total:</label><input type="number" id="editTotalInstallments" class="input-field"></div>
-                        <div><label for="editPaidInstallments" class="text-sm">Pagadas:</label><input type="number" id="editPaidInstallments" class="input-field"></div>
-                     </div>
+                <div>
+                    <label for="editDescription" class="block text-sm font-medium">Descripción</label>
+                    <input type="text" id="editDescription" required class="input-field">
+                </div>
+                <div>
+                    <label for="editAmount" class="block text-sm font-medium">Monto Total</label>
+                    <input type="number" id="editAmount" min="0.01" step="0.01" required class="input-field">
+                </div>
+                <div>
+                    <label for="editCategory" class="block text-sm font-medium">Categoría</label>
+                    <select id="editCategory" required class="input-field"></select>
+                </div>
+                <!-- Opciones de Egreso para Edición -->
+                <div id="editExpenseOptionsSection" class="hidden space-y-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                    <div>
+                        <label for="editExpenseDivisionFactor" class="block text-sm font-medium">División</label>
+                        <select id="editExpenseDivisionFactor" class="input-field">
+                            <option value="1">Individual</option>
+                            <option value="2">Compartido (x2)</option>
+                        </select>
+                    </div>
+                    <label class="flex items-center space-x-2 cursor-pointer">
+                        <input type="checkbox" id="editIsInstallment" class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                        <span class="text-sm">En cuotas</span>
+                    </label>
+                    <div id="editInstallmentDetails" class="hidden space-y-2 pl-4 border-l-2 border-gray-200 dark:border-gray-700">
+                        <div>
+                            <label for="editTotalInstallments" class="text-sm">Total de cuotas:</label>
+                            <input type="number" id="editTotalInstallments" class="input-field">
+                        </div>
+                        <div>
+                            <label for="editPaidInstallments" class="text-sm">Pagadas:</label>
+                            <input type="number" id="editPaidInstallments" class="input-field">
+                        </div>
+                    </div>
                 </div>
                 <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-4 rounded-lg">Guardar Cambios</button>
             </form>
@@ -187,7 +213,6 @@
         document.addEventListener('DOMContentLoaded', () => {
             if (!token) { window.location.href = './login.html'; return; }
             
-            // Set initial theme before doing anything else
             const savedTheme = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
             applyTheme(savedTheme);
 
@@ -255,9 +280,27 @@
                 const row = document.createElement('tr');
                 const typeClass = t.type === 'ingreso' ? 'text-emerald-500' : 'text-red-500';
                 const amount = t.originalAmount != null ? t.originalAmount : t.amount;
+
+                let detailsHtml = '';
+                if (t.type === 'egreso') {
+                    const details = [];
+                    if (t.isInstallment && t.totalInstallments > 0) {
+                        details.push(`Cuota ${t.paidInstallments || 0}/${t.totalInstallments}`);
+                    }
+                    if (t.divisionFactor > 1) {
+                        details.push(`Compartido &divide;${t.divisionFactor}`);
+                    }
+                    if (details.length > 0) {
+                        detailsHtml = `<span class="ml-2 text-xs font-mono bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded-md">${details.join(' | ')}</span>`;
+                    }
+                }
+
                 row.innerHTML = `
                     <td class="py-4 pr-3">
-                        <p class="font-semibold text-gray-800 dark:text-gray-100">${t.description}</p>
+                        <div class="flex items-center justify-start">
+                            <p class="font-semibold text-gray-800 dark:text-gray-100">${t.description}</p>
+                            ${detailsHtml}
+                        </div>
                         <p class="text-xs text-gray-500 dark:text-gray-400">${t.category} &bull; ${new Date(t.date).toLocaleDateString()}</p>
                     </td>
                     <td class="py-4 pr-3 text-right font-medium ${typeClass}">${formatCurrency(amount)}</td>
@@ -307,6 +350,7 @@
             document.getElementById('transactionForm').addEventListener('submit', handleAddTransaction);
             document.getElementById('transactionType').addEventListener('change', (e) => updateFormForType(e.target.value));
             document.getElementById('isInstallment').addEventListener('change', (e) => document.getElementById('installmentDetails').classList.toggle('hidden', !e.target.checked));
+            document.getElementById('editIsInstallment').addEventListener('change', (e) => document.getElementById('editInstallmentDetails').classList.toggle('hidden', !e.target.checked));
             document.getElementById('filter-button').addEventListener('click', updateDashboard);
             document.getElementById('analyze-button').addEventListener('click', getAIAnalysis);
             document.getElementById('transactionTableBody').addEventListener('click', (e) => {
@@ -352,16 +396,24 @@
         
         async function handleEditTransaction(e) {
             e.preventDefault();
-            const form = e.target;
-            const id = form.editTransactionId.value;
-            const type = form.editTransactionType.value;
-            const data = { description: form.editDescription.value, amount: parseFloat(form.editAmount.value), category: form.editCategory.value };
+            const id = document.getElementById('editTransactionId').value;
+            const type = document.getElementById('editTransactionType').value;
+
+            const data = {
+                description: document.getElementById('editDescription').value,
+                amount: parseFloat(document.getElementById('editAmount').value),
+                category: document.getElementById('editCategory').value
+            };
+
             if (type === 'egreso') {
-                data.divisionFactor = parseInt(form.editExpenseDivisionFactor.value);
-                data.isInstallment = form.editIsInstallment.checked;
+                data.divisionFactor = parseInt(document.getElementById('editExpenseDivisionFactor').value);
+                data.isInstallment = document.getElementById('editIsInstallment').checked;
                 if (data.isInstallment) {
-                    data.totalInstallments = parseInt(form.editTotalInstallments.value);
-                    data.paidInstallments = parseInt(form.editPaidInstallments.value);
+                    data.totalInstallments = parseInt(document.getElementById('editTotalInstallments').value);
+                    data.paidInstallments = parseInt(document.getElementById('editPaidInstallments').value);
+                } else {
+                    data.totalInstallments = null;
+                    data.paidInstallments = null;
                 }
             }
             try {
@@ -431,42 +483,33 @@
         function openEditModal(id) {
             const t = allTransactions.find(t => t._id === id);
             if (!t) return;
-            const form = document.getElementById('editForm');
-            form.innerHTML = getEditFormHTML(t);
+
+            document.getElementById('editTransactionId').value = t._id;
+            document.getElementById('editTransactionType').value = t.type;
+            document.getElementById('editDescription').value = t.description;
+            document.getElementById('editAmount').value = t.originalAmount != null ? t.originalAmount : t.amount;
+            
             updateFormForType(t.type, 'edit');
             document.getElementById('editCategory').value = t.category;
+
             if (t.type === 'egreso') {
                 document.getElementById('editExpenseDivisionFactor').value = t.divisionFactor || 1;
                 const isInstallmentCheck = document.getElementById('editIsInstallment');
-                isInstallmentCheck.checked = t.isInstallment;
-                document.getElementById('editInstallmentDetails').classList.toggle('hidden', !t.isInstallment);
-                if(t.isInstallment) {
+                isInstallmentCheck.checked = t.isInstallment || false;
+                isInstallmentCheck.dispatchEvent(new Event('change'));
+
+                if (t.isInstallment) {
                     document.getElementById('editTotalInstallments').value = t.totalInstallments;
                     document.getElementById('editPaidInstallments').value = t.paidInstallments;
+                } else {
+                    document.getElementById('editTotalInstallments').value = '';
+                    document.getElementById('editPaidInstallments').value = '';
                 }
-                isInstallmentCheck.addEventListener('change', (e) => document.getElementById('editInstallmentDetails').classList.toggle('hidden', !e.target.checked));
             }
+            
             document.getElementById('editModal').style.display = 'flex';
         }
         
-        function getEditFormHTML(t) {
-            return `
-                <input type="hidden" id="editTransactionId" value="${t._id}"><input type="hidden" id="editTransactionType" value="${t.type}">
-                <div><label for="editDescription" class="block text-sm font-medium">Descripción</label><input type="text" id="editDescription" value="${t.description}" required class="input-field"></div>
-                <div><label for="editAmount" class="block text-sm font-medium">Monto Total</label><input type="number" id="editAmount" value="${t.originalAmount != null ? t.originalAmount : t.amount}" min="0.01" step="0.01" required class="input-field"></div>
-                <div><label for="editCategory" class="block text-sm font-medium">Categoría</label><select id="editCategory" required class="input-field"></select></div>
-                <div id="editExpenseOptionsSection" class="hidden space-y-4 pt-2">
-                     <div><label for="editExpenseDivisionFactor" class="block text-sm font-medium">División</label><select id="editExpenseDivisionFactor" class="input-field"><option value="1">Individual</option><option value="2">Compartido (x2)</option></select></div>
-                     <label class="flex items-center space-x-2"><input type="checkbox" id="editIsInstallment" class="h-4 w-4 rounded"><span class="text-sm">En cuotas</span></label>
-                     <div id="editInstallmentDetails" class="hidden space-y-2 pl-4 border-l-2 border-gray-200 dark:border-gray-700">
-                        <div><label for="editTotalInstallments" class="text-sm">Total:</label><input type="number" id="editTotalInstallments" class="input-field"></div>
-                        <div><label for="editPaidInstallments" class="text-sm">Pagadas:</label><input type="number" id="editPaidInstallments" class="input-field"></div>
-                     </div>
-                </div>
-                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-4 rounded-lg">Guardar Cambios</button>
-            `;
-        }
-
         function openConfirmModal(id) {
             transactionToDeleteId = id;
             document.getElementById('confirmModal').style.display = 'flex';
