@@ -23,9 +23,29 @@
 </head>
 <body class="bg-gray-100 text-gray-800">
 
+    <!-- Pantalla de bienvenida / creación del primer grupo -->
+    <div id="welcome-overlay" class="fixed inset-0 z-50 flex-col items-center justify-center bg-gray-100 hidden">
+        <div class="text-center p-8 max-w-lg">
+            <h2 class="text-3xl font-bold text-gray-900 mb-4">¡Bienvenido/a!</h2>
+            <p class="text-gray-600 mb-8">Para empezar, crea tu primer grupo contable. Puedes tener varios, por ejemplo: "Finanzas Personales", "Negocio", "Vacaciones", etc.</p>
+            <div class="w-full max-w-sm mx-auto">
+                 <form id="firstLedgerForm" class="flex items-center gap-2">
+                    <input type="text" id="firstLedgerName" placeholder="Ej: Mis Finanzas Personales" required class="input-field flex-grow">
+                    <button type="submit" class="bg-black hover:bg-gray-800 text-white font-bold py-3 px-6 rounded-lg">Crear</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <div id="main-content" class="container mx-auto max-w-7xl p-4 sm:p-6 lg:p-8 hidden">
-        <header class="mb-8 flex justify-between items-center">
-            <h1 class="text-4xl font-bold text-gray-900">Dashboard</h1>
+        <header class="mb-8 flex flex-wrap justify-between items-center gap-4">
+            <div class="flex items-center gap-4">
+                <h1 class="text-4xl font-bold text-gray-900">Dashboard</h1>
+                <div id="ledger-controls" class="flex items-center gap-2">
+                     <select id="ledger-select" class="input-field text-sm font-medium"></select>
+                     <button id="new-ledger-btn" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold p-2.5 rounded-lg">+</button>
+                </div>
+            </div>
             <div class="flex items-center space-x-4">
                 <button id="logoutBtn" class="bg-gray-800 hover:bg-black text-white font-bold py-2 px-4 rounded-lg shadow-sm">Cerrar Sesión</button>
             </div>
@@ -67,7 +87,6 @@
                             <input type="date" id="date" required class="input-field">
                         </div>
 
-                        <!-- Opciones solo para Egresos -->
                         <div id="expenseOptionsSection" class="hidden space-y-4 pt-2 border-t border-gray-200">
                             <div>
                                 <label for="expenseDivisionFactor" class="block text-sm font-medium">División</label>
@@ -133,6 +152,21 @@
 
     <div id="loader" class="fixed inset-0 flex items-center justify-center bg-gray-100 z-50"><div class="loader"></div></div>
     
+    <!-- Modal para crear nuevo grupo -->
+    <div id="newLedgerModal" class="modal">
+        <div class="modal-content bg-white">
+            <h3 class="text-xl font-semibold mb-4 text-gray-900">Crear Nuevo Grupo Contable</h3>
+            <form id="newLedgerForm">
+                <label for="newLedgerName" class="block text-sm font-medium">Nombre del Grupo</label>
+                <input type="text" id="newLedgerName" required class="input-field mt-1" placeholder="Ej: Gastos del Trabajo">
+                <div class="flex justify-end space-x-4 mt-6">
+                    <button type="button" id="cancelNewLedgerBtn" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg">Cancelar</button>
+                    <button type="submit" class="bg-black hover:bg-gray-800 text-white font-bold py-2 px-4 rounded-lg">Crear</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <div id="editModal" class="modal">
         <div class="modal-content bg-white">
             <div class="flex justify-between items-center mb-4">
@@ -202,6 +236,10 @@
 
         const API_URL = 'https://gestor-finanzas-backend.onrender.com/api';
         const token = localStorage.getItem('authToken');
+        
+        // State variables
+        let ledgers = [];
+        let currentLedgerId = null;
         let allTransactions = [];
         let displayedTransactions = [];
         let expensesChart = null;
@@ -216,26 +254,56 @@
         // --- INITIALIZATION ---
         document.addEventListener('DOMContentLoaded', () => {
             if (!token) { window.location.href = './login.html'; return; }
-            initializeForm();
             setupEventListeners();
             loadInitialData();
         });
 
         async function loadInitialData() {
             try {
-                allTransactions = await apiRequest('/transactions');
+                ledgers = await apiRequest('/ledgers');
+                if (ledgers.length === 0) {
+                    document.getElementById('loader').classList.add('hidden');
+                    document.getElementById('welcome-overlay').style.display = 'flex';
+                } else {
+                    populateLedgerSelect();
+                    currentLedgerId = ledgers[0]._id;
+                    document.getElementById('ledger-select').value = currentLedgerId;
+                    await loadLedgerData();
+                    document.getElementById('loader').classList.add('hidden');
+                    document.getElementById('main-content').classList.remove('hidden');
+                }
+            } catch (error) {
+                document.getElementById('loader').innerHTML = `<p class="text-red-500">${error.message}</p>`;
+            }
+        }
+
+        async function loadLedgerData() {
+            if (!currentLedgerId) return;
+            try {
+                document.getElementById('main-content').classList.add('hidden');
+                document.getElementById('loader').classList.remove('hidden');
+                
+                allTransactions = await apiRequest(`/transactions?ledgerId=${currentLedgerId}`);
                 displayedTransactions = [...allTransactions];
+                
+                // Reset categories and populate from current ledger's transactions
+                categories.ingreso = ['Sueldo', 'Ventas', 'Inversiones', 'Regalo', 'Otros Ingresos'];
+                categories.egreso = ['Comida', 'Transporte', 'Servicios', 'Entretenimiento', 'Salud', 'Educación', 'Ropa', 'Impuestos', 'Alquiler/Hipoteca', 'Otros Gastos'];
                 allTransactions.forEach(t => {
                     if (!categories[t.type].includes(t.category)) {
                         categories[t.type].push(t.category);
                     }
                 });
+                
+                initializeForm();
                 renderTransactionsList(displayedTransactions);
-                await updateDashboardSummary(displayedTransactions);
+                updateDashboardSummary(displayedTransactions);
+
                 document.getElementById('loader').classList.add('hidden');
                 document.getElementById('main-content').classList.remove('hidden');
+
             } catch (error) {
-                document.getElementById('loader').innerHTML = `<p class="text-red-500">${error.message}</p>`;
+                 document.getElementById('loader').innerHTML = `<p class="text-red-500">Error al cargar datos del grupo: ${error.message}</p>`;
             }
         }
 
@@ -354,7 +422,7 @@
             const ctx = document.getElementById('expensesChart').getContext('2d');
             if (expensesChart) expensesChart.destroy();
             
-            Chart.defaults.color = '#4b5563'; // gray-600
+            Chart.defaults.color = '#4b5563';
             
             expensesChart = new Chart(ctx, {
                 type: 'doughnut',
@@ -363,7 +431,7 @@
                     datasets: [{
                         data: Object.values(expensesByCategory).length > 0 ? Object.values(expensesByCategory) : [1],
                         backgroundColor: ['#111827', '#374151', '#4b5563', '#6b7280', '#9ca3af', '#d1d5db', '#e5e7eb'],
-                        borderColor: '#f3f4f6', // bg-gray-100
+                        borderColor: '#f3f4f6',
                         borderWidth: 4,
                         hoverOffset: 8
                     }]
@@ -414,6 +482,17 @@
             window.addEventListener('click', (event) => {
                 if (event.target == document.getElementById('editModal')) closeEditModal();
                 if (event.target == document.getElementById('confirmModal')) closeConfirmModal();
+                if (event.target == document.getElementById('newLedgerModal')) closeNewLedgerModal();
+            });
+
+            // Listeners for new ledger/group functionality
+            document.getElementById('firstLedgerForm').addEventListener('submit', handleCreateFirstLedger);
+            document.getElementById('new-ledger-btn').addEventListener('click', openNewLedgerModal);
+            document.getElementById('cancelNewLedgerBtn').addEventListener('click', closeNewLedgerModal);
+            document.getElementById('newLedgerForm').addEventListener('submit', handleCreateNewLedger);
+            document.getElementById('ledger-select').addEventListener('change', (e) => {
+                currentLedgerId = e.target.value;
+                loadLedgerData();
             });
         }
         
@@ -437,7 +516,7 @@
                 document.getElementById('newCategoryWrapper').classList.add('hidden');
             }
 
-            const data = { type, description: form.description.value, amount: parseFloat(form.amount.value), category, date: form.date.value };
+            const data = { type, description: form.description.value, amount: parseFloat(form.amount.value), category, date: form.date.value, ledgerId: currentLedgerId };
             if (type === 'egreso') {
                 data.originalAmount = data.amount;
                 data.divisionFactor = parseInt(form.expenseDivisionFactor.value);
@@ -521,6 +600,7 @@
                 const body = {
                     startDate: document.getElementById('startDate').value || null,
                     endDate: document.getElementById('endDate').value || null,
+                    ledgerId: currentLedgerId
                 };
                 const res = await apiRequest('/transactions/analyze-ai', 'POST', body);
                 container.innerHTML = markdownConverter.makeHtml(res.analysis);
@@ -617,26 +697,24 @@
 
         function generatePDF() {
             const doc = new jsPDF();
-            const startDate = document.getElementById('startDate').value;
-            const endDate = document.getElementById('endDate').value;
+            const selectedLedger = ledgers.find(l => l._id === currentLedgerId);
+            const ledgerName = selectedLedger ? selectedLedger.name : "Registro Contable";
+            
             const totalIncome = document.getElementById('totalIncome').textContent;
             const totalExpenses = document.getElementById('totalExpenses').textContent;
             const currentBalance = document.getElementById('currentBalance').textContent;
 
-            // Título
             doc.setFontSize(18);
-            doc.text("Registro Contable", 14, 22);
+            doc.text(ledgerName, 14, 22);
 
-            // Información del reporte
             doc.setFontSize(11);
             doc.setTextColor(100);
-            const dateRangeText = startDate && endDate 
-                ? `Período: ${new Date(startDate + 'T00:00:00').toLocaleDateString()} - ${new Date(endDate + 'T00:00:00').toLocaleDateString()}`
+            const dateRangeText = document.getElementById('startDate').value && document.getElementById('endDate').value 
+                ? `Período: ${new Date(document.getElementById('startDate').value + 'T00:00:00').toLocaleDateString()} - ${new Date(document.getElementById('endDate').value + 'T00:00:00').toLocaleDateString()}`
                 : "Período: Todas las fechas";
             doc.text(dateRangeText, 14, 30);
             doc.text(`Fecha de exportación: ${new Date().toLocaleDateString()}`, 14, 36);
 
-            // Resumen
             doc.setFontSize(14);
             doc.text("Resumen General", 14, 50);
             doc.autoTable({
@@ -651,7 +729,6 @@
                 headStyles: { fillColor: [41, 128, 185] }
             });
 
-            // Tabla de Transacciones
             const tableColumn = ["Fecha", "Descripción", "Categoría", "Tipo", "Monto"];
             const tableRows = [];
 
@@ -673,9 +750,60 @@
                 theme: 'grid',
             });
 
-            // Guardar el PDF
-            doc.save('registro-contable.pdf');
+            doc.save(`${ledgerName.toLowerCase().replace(/\s/g, '-')}.pdf`);
         }
+
+        // --- Ledger/Group Functions ---
+        function populateLedgerSelect() {
+            const select = document.getElementById('ledger-select');
+            select.innerHTML = '';
+            ledgers.forEach(ledger => {
+                select.add(new Option(ledger.name, ledger._id));
+            });
+        }
+
+        function openNewLedgerModal() {
+            document.getElementById('newLedgerModal').style.display = 'flex';
+        }
+
+        function closeNewLedgerModal() {
+            document.getElementById('newLedgerModal').style.display = 'none';
+            document.getElementById('newLedgerForm').reset();
+        }
+
+        async function handleCreateNewLedger(e) {
+            e.preventDefault();
+            const name = document.getElementById('newLedgerName').value.trim();
+            if (!name) return;
+            try {
+                const newLedger = await apiRequest('/ledgers', 'POST', { name });
+                ledgers.push(newLedger);
+                populateLedgerSelect();
+                document.getElementById('ledger-select').value = newLedger._id;
+                currentLedgerId = newLedger._id;
+                await loadLedgerData();
+                closeNewLedgerModal();
+            } catch (error) {
+                alert(`Error al crear el grupo: ${error.message}`);
+            }
+        }
+        
+        async function handleCreateFirstLedger(e) {
+            e.preventDefault();
+            const name = document.getElementById('firstLedgerName').value.trim();
+            if (!name) return;
+            try {
+                const newLedger = await apiRequest('/ledgers', 'POST', { name });
+                ledgers.push(newLedger);
+                document.getElementById('welcome-overlay').style.display = 'none';
+                populateLedgerSelect();
+                currentLedgerId = newLedger._id;
+                await loadLedgerData();
+            } catch (error) {
+                 alert(`Error al crear tu primer grupo: ${error.message}`);
+            }
+        }
+
     </script>
 </body>
 </html>
