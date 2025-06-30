@@ -60,6 +60,10 @@
                             <label for="category" class="block text-sm font-medium">Categoría</label>
                             <select id="category" required class="input-field"></select>
                         </div>
+                        <div id="newCategoryWrapper" class="hidden">
+                            <label for="newCategory" class="block text-sm font-medium">Nombre de la nueva categoría</label>
+                            <input type="text" id="newCategory" class="input-field" placeholder="Ej: Supermercado">
+                        </div>
                         <div>
                             <label for="date" class="block text-sm font-medium">Fecha</label>
                             <input type="date" id="date" required class="input-field">
@@ -149,6 +153,10 @@
                     <label for="editCategory" class="block text-sm font-medium">Categoría</label>
                     <select id="editCategory" required class="input-field"></select>
                 </div>
+                 <div id="editNewCategoryWrapper" class="hidden">
+                    <label for="editNewCategory" class="block text-sm font-medium">Nombre de la nueva categoría</label>
+                    <input type="text" id="editNewCategory" class="input-field" placeholder="Ej: Supermercado">
+                </div>
                 <!-- Opciones de Egreso para Edición -->
                 <div id="editExpenseOptionsSection" class="hidden space-y-4 pt-4 border-t border-gray-200 dark:border-gray-700">
                     <div>
@@ -223,7 +231,13 @@
 
         async function loadInitialData() {
             try {
+                // Fetch existing transactions and populate categories
                 allTransactions = await apiRequest('/transactions');
+                allTransactions.forEach(t => {
+                    if (!categories[t.type].includes(t.category)) {
+                        categories[t.type].push(t.category);
+                    }
+                });
                 renderTransactionsList(allTransactions);
                 await updateDashboard();
                 document.getElementById('loader').classList.add('hidden');
@@ -348,9 +362,18 @@
             });
             document.getElementById('logoutBtn').addEventListener('click', () => { localStorage.removeItem('authToken'); window.location.href = './login.html'; });
             document.getElementById('transactionForm').addEventListener('submit', handleAddTransaction);
-            document.getElementById('transactionType').addEventListener('change', (e) => updateFormForType(e.target.value));
+            document.getElementById('transactionType').addEventListener('change', (e) => {
+                updateFormForType(e.target.value);
+                document.getElementById('newCategoryWrapper').classList.add('hidden');
+            });
+            document.getElementById('category').addEventListener('change', (e) => {
+                document.getElementById('newCategoryWrapper').classList.toggle('hidden', e.target.value !== '--new--');
+            });
             document.getElementById('isInstallment').addEventListener('change', (e) => document.getElementById('installmentDetails').classList.toggle('hidden', !e.target.checked));
             document.getElementById('editIsInstallment').addEventListener('change', (e) => document.getElementById('editInstallmentDetails').classList.toggle('hidden', !e.target.checked));
+            document.getElementById('editCategory').addEventListener('change', (e) => {
+                document.getElementById('editNewCategoryWrapper').classList.toggle('hidden', e.target.value !== '--new--');
+            });
             document.getElementById('filter-button').addEventListener('click', updateDashboard);
             document.getElementById('analyze-button').addEventListener('click', getAIAnalysis);
             document.getElementById('transactionTableBody').addEventListener('click', (e) => {
@@ -373,15 +396,31 @@
             e.preventDefault();
             const form = e.target;
             const type = form.transactionType.value;
-            const data = { type, description: form.description.value, amount: parseFloat(form.amount.value), category: form.category.value, date: form.date.value };
+            let category = form.category.value;
+
+            if (category === '--new--') {
+                const newCategoryInput = document.getElementById('newCategory');
+                category = newCategoryInput.value.trim();
+                if (!category) {
+                    alert('Por favor, ingresa un nombre para la nueva categoría.');
+                    return;
+                }
+                if (!categories[type].includes(category)) {
+                    categories[type].push(category);
+                }
+                newCategoryInput.value = '';
+                document.getElementById('newCategoryWrapper').classList.add('hidden');
+            }
+
+            const data = { type, description: form.description.value, amount: parseFloat(form.amount.value), category, date: form.date.value };
             if (type === 'egreso') {
                 data.originalAmount = data.amount;
                 data.divisionFactor = parseInt(form.expenseDivisionFactor.value);
                 data.amount /= data.divisionFactor;
                 data.isInstallment = form.isInstallment.checked;
                 if (data.isInstallment) {
-                    data.totalInstallments = parseInt(form.totalInstallments.value);
-                    data.paidInstallments = parseInt(form.paidInstallments.value);
+                    data.totalInstallments = parseInt(form.totalInstallments.value) || 0;
+                    data.paidInstallments = parseInt(form.paidInstallments.value) || 0;
                 }
             }
             try {
@@ -398,19 +437,32 @@
             e.preventDefault();
             const id = document.getElementById('editTransactionId').value;
             const type = document.getElementById('editTransactionType').value;
+            let category = document.getElementById('editCategory').value;
+
+            if (category === '--new--') {
+                const newCategoryInput = document.getElementById('editNewCategory');
+                category = newCategoryInput.value.trim();
+                if (!category) {
+                    alert('Por favor, ingresa un nombre para la nueva categoría.');
+                    return;
+                }
+                if (!categories[type].includes(category)) {
+                    categories[type].push(category);
+                }
+            }
 
             const data = {
                 description: document.getElementById('editDescription').value,
                 amount: parseFloat(document.getElementById('editAmount').value),
-                category: document.getElementById('editCategory').value
+                category
             };
 
             if (type === 'egreso') {
                 data.divisionFactor = parseInt(document.getElementById('editExpenseDivisionFactor').value);
                 data.isInstallment = document.getElementById('editIsInstallment').checked;
                 if (data.isInstallment) {
-                    data.totalInstallments = parseInt(document.getElementById('editTotalInstallments').value);
-                    data.paidInstallments = parseInt(document.getElementById('editPaidInstallments').value);
+                    data.totalInstallments = parseInt(document.getElementById('editTotalInstallments').value) || 0;
+                    data.paidInstallments = parseInt(document.getElementById('editPaidInstallments').value) || 0;
                 } else {
                     data.totalInstallments = null;
                     data.paidInstallments = null;
@@ -466,20 +518,15 @@
         }
 
         function updateFormForType(type, formPrefix = '') {
-            // BUG FIX: Corrected casing for dynamically built IDs
-            const categorySelect = document.getElementById(`${formPrefix}Category`);
-            const expenseOptions = document.getElementById(`${formPrefix}ExpenseOptionsSection`);
-            const isInstallmentCheck = document.getElementById(`${formPrefix}IsInstallment`);
-            const installmentDetails = document.getElementById(`${formPrefix}InstallmentDetails`);
-            
+            const categorySelect = document.getElementById(`${formPrefix}category`);
             if (!categorySelect) return;
             populateCategoryOptions(categorySelect, type);
-            
             const isEgreso = type === 'egreso';
-
+            const expenseOptions = document.getElementById(`${formPrefix}ExpenseOptionsSection`);
             if (expenseOptions) expenseOptions.classList.toggle('hidden', !isEgreso);
-            
             if (!isEgreso) {
+                const isInstallmentCheck = document.getElementById(`${formPrefix}IsInstallment`);
+                const installmentDetails = document.getElementById(`${formPrefix}InstallmentDetails`);
                 if(isInstallmentCheck) isInstallmentCheck.checked = false;
                 if(installmentDetails) installmentDetails.classList.add('hidden');
             }
@@ -496,6 +543,9 @@
             
             updateFormForType(t.type, 'edit');
             document.getElementById('editCategory').value = t.category;
+            
+            // Hide new category wrappers initially
+            document.getElementById('editNewCategoryWrapper').classList.add('hidden');
 
             if (t.type === 'egreso') {
                 document.getElementById('editExpenseDivisionFactor').value = t.divisionFactor || 1;
@@ -521,7 +571,15 @@
         }
         function closeEditModal() { document.getElementById('editModal').style.display = 'none'; }
         function closeConfirmModal() { document.getElementById('confirmModal').style.display = 'none'; }
-        function populateCategoryOptions(select, type) { select.innerHTML = ''; categories[type].forEach(cat => select.add(new Option(cat, cat))); }
+        
+        function populateCategoryOptions(select, type) { 
+            const currentValue = select.value;
+            select.innerHTML = ''; 
+            categories[type].forEach(cat => select.add(new Option(cat, cat)));
+            select.add(new Option('-- Crear nueva categoría --', '--new--'));
+            select.value = currentValue;
+        }
+
         const formatCurrency = (amount) => (amount != null ? amount : 0).toLocaleString('es-AR', { style: 'currency', currency: 'ARS' });
     </script>
 </body>
