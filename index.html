@@ -202,6 +202,7 @@
         const token = localStorage.getItem('authToken');
         let allTransactions = [];
         let expensesChart = null;
+        let lastChartData = {}; // Variable para guardar los datos del gráfico
         let transactionToDeleteId = null;
         const categories = {
             ingreso: ['Sueldo', 'Ventas', 'Inversiones', 'Regalo', 'Otros Ingresos'],
@@ -231,7 +232,6 @@
 
         async function loadInitialData() {
             try {
-                // Fetch existing transactions and populate categories
                 allTransactions = await apiRequest('/transactions');
                 allTransactions.forEach(t => {
                     if (!categories[t.type].includes(t.category)) {
@@ -328,6 +328,7 @@
         }
         
         function renderChart(expensesByCategory) {
+            lastChartData = expensesByCategory; // Guardar datos para redibujar
             const ctx = document.getElementById('expensesChart').getContext('2d');
             if (expensesChart) expensesChart.destroy();
             
@@ -358,7 +359,10 @@
                 const newTheme = document.documentElement.classList.contains('dark') ? 'light' : 'dark';
                 localStorage.setItem('theme', newTheme);
                 applyTheme(newTheme);
-                if(expensesChart) updateDashboard();
+                // Redibujar el gráfico con los datos existentes
+                if (expensesChart) {
+                    renderChart(lastChartData);
+                }
             });
             document.getElementById('logoutBtn').addEventListener('click', () => { localStorage.removeItem('authToken'); window.location.href = './login.html'; });
             document.getElementById('transactionForm').addEventListener('submit', handleAddTransaction);
@@ -518,13 +522,12 @@
         }
 
         function updateFormForType(type, formPrefix = '') {
-            // Robust way to build element IDs, handling inconsistent casing
             const toTitleCase = (str) => str.charAt(0).toUpperCase() + str.slice(1);
             
-            const categorySelectId = formPrefix ? `${formPrefix}${toTitleCase('category')}` : 'category';
-            const expenseOptionsId = formPrefix ? `${formPrefix}${toTitleCase('expenseOptionsSection')}` : 'expenseOptionsSection';
-            const isInstallmentCheckId = formPrefix ? `${formPrefix}${toTitleCase('isInstallment')}` : 'isInstallment';
-            const installmentDetailsId = formPrefix ? `${formPrefix}${toTitleCase('installmentDetails')}` : 'installmentDetails';
+            const categorySelectId = formPrefix + (formPrefix ? toTitleCase('category') : 'category');
+            const expenseOptionsId = formPrefix + (formPrefix ? toTitleCase('expenseOptionsSection') : 'expenseOptionsSection');
+            const isInstallmentCheckId = formPrefix + (formPrefix ? toTitleCase('isInstallment') : 'isInstallment');
+            const installmentDetailsId = formPrefix + (formPrefix ? toTitleCase('installmentDetails') : 'installmentDetails');
 
             const categorySelect = document.getElementById(categorySelectId);
             const expenseOptions = document.getElementById(expenseOptionsId);
@@ -536,9 +539,7 @@
             
             const isEgreso = type === 'egreso';
 
-            if (expenseOptions) {
-                expenseOptions.classList.toggle('hidden', !isEgreso);
-            }
+            if (expenseOptions) expenseOptions.classList.toggle('hidden', !isEgreso);
             
             if (!isEgreso) {
                 if(isInstallmentCheck) isInstallmentCheck.checked = false;
@@ -598,4 +599,3 @@
     </script>
 </body>
 </html>
-
