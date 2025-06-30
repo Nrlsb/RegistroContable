@@ -518,15 +518,29 @@
         }
 
         function updateFormForType(type, formPrefix = '') {
-            const categorySelect = document.getElementById(`${formPrefix}category`);
+            // Robust way to build element IDs, handling inconsistent casing
+            const toTitleCase = (str) => str.charAt(0).toUpperCase() + str.slice(1);
+            
+            const categorySelectId = formPrefix ? `${formPrefix}${toTitleCase('category')}` : 'category';
+            const expenseOptionsId = formPrefix ? `${formPrefix}${toTitleCase('expenseOptionsSection')}` : 'expenseOptionsSection';
+            const isInstallmentCheckId = formPrefix ? `${formPrefix}${toTitleCase('isInstallment')}` : 'isInstallment';
+            const installmentDetailsId = formPrefix ? `${formPrefix}${toTitleCase('installmentDetails')}` : 'installmentDetails';
+
+            const categorySelect = document.getElementById(categorySelectId);
+            const expenseOptions = document.getElementById(expenseOptionsId);
+            const isInstallmentCheck = document.getElementById(isInstallmentCheckId);
+            const installmentDetails = document.getElementById(installmentDetailsId);
+
             if (!categorySelect) return;
             populateCategoryOptions(categorySelect, type);
+            
             const isEgreso = type === 'egreso';
-            const expenseOptions = document.getElementById(`${formPrefix}ExpenseOptionsSection`);
-            if (expenseOptions) expenseOptions.classList.toggle('hidden', !isEgreso);
+
+            if (expenseOptions) {
+                expenseOptions.classList.toggle('hidden', !isEgreso);
+            }
+            
             if (!isEgreso) {
-                const isInstallmentCheck = document.getElementById(`${formPrefix}IsInstallment`);
-                const installmentDetails = document.getElementById(`${formPrefix}InstallmentDetails`);
                 if(isInstallmentCheck) isInstallmentCheck.checked = false;
                 if(installmentDetails) installmentDetails.classList.add('hidden');
             }
@@ -544,8 +558,8 @@
             updateFormForType(t.type, 'edit');
             document.getElementById('editCategory').value = t.category;
             
-            // Hide new category wrappers initially
             document.getElementById('editNewCategoryWrapper').classList.add('hidden');
+            document.getElementById('editNewCategory').value = '';
 
             if (t.type === 'egreso') {
                 document.getElementById('editExpenseDivisionFactor').value = t.divisionFactor || 1;
@@ -584,3 +598,4 @@
     </script>
 </body>
 </html>
+
